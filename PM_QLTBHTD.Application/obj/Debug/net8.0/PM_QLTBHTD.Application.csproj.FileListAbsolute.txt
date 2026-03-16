@@ -1,0 +1,15 @@
+D:\SOFTWARE\PMQLTBHTD\PM_QLTBHTD.Application\bin\Debug\net8.0\PM_QLTBHTD.Application.deps.json
+D:\SOFTWARE\PMQLTBHTD\PM_QLTBHTD.Application\bin\Debug\net8.0\PM_QLTBHTD.Application.dll
+D:\SOFTWARE\PMQLTBHTD\PM_QLTBHTD.Application\bin\Debug\net8.0\PM_QLTBHTD.Application.pdb
+D:\SOFTWARE\PMQLTBHTD\PM_QLTBHTD.Application\bin\Debug\net8.0\PM_QLTBHTD.Domain.dll
+D:\SOFTWARE\PMQLTBHTD\PM_QLTBHTD.Application\bin\Debug\net8.0\PM_QLTBHTD.Domain.pdb
+D:\SOFTWARE\PMQLTBHTD\PM_QLTBHTD.Application\obj\Debug\net8.0\PM_QLTBHTD.Application.csproj.AssemblyReference.cache
+D:\SOFTWARE\PMQLTBHTD\PM_QLTBHTD.Application\obj\Debug\net8.0\PM_QLTBHTD.Application.GeneratedMSBuildEditorConfig.editorconfig
+D:\SOFTWARE\PMQLTBHTD\PM_QLTBHTD.Application\obj\Debug\net8.0\PM_QLTBHTD.Application.AssemblyInfoInputs.cache
+D:\SOFTWARE\PMQLTBHTD\PM_QLTBHTD.Application\obj\Debug\net8.0\PM_QLTBHTD.Application.AssemblyInfo.cs
+D:\SOFTWARE\PMQLTBHTD\PM_QLTBHTD.Application\obj\Debug\net8.0\PM_QLTBHTD.Application.csproj.CoreCompileInputs.cache
+D:\SOFTWARE\PMQLTBHTD\PM_QLTBHTD.Application\obj\Debug\net8.0\PM_QLTBH.C186906C.Up2Date
+D:\SOFTWARE\PMQLTBHTD\PM_QLTBHTD.Application\obj\Debug\net8.0\PM_QLTBHTD.Application.dll
+D:\SOFTWARE\PMQLTBHTD\PM_QLTBHTD.Application\obj\Debug\net8.0\refint\PM_QLTBHTD.Application.dll
+D:\SOFTWARE\PMQLTBHTD\PM_QLTBHTD.Application\obj\Debug\net8.0\PM_QLTBHTD.Application.pdb
+D:\SOFTWARE\PMQLTBHTD\PM_QLTBHTD.Application\obj\Debug\net8.0\ref\PM_QLTBHTD.Application.dll

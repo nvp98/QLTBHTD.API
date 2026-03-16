@@ -1,0 +1,11 @@
+D:\SOFTWARE\PMQLTBHTD\PM_QLTBHTD.Domain\bin\Debug\net8.0\PM_QLTBHTD.Domain.deps.json
+D:\SOFTWARE\PMQLTBHTD\PM_QLTBHTD.Domain\bin\Debug\net8.0\PM_QLTBHTD.Domain.dll
+D:\SOFTWARE\PMQLTBHTD\PM_QLTBHTD.Domain\bin\Debug\net8.0\PM_QLTBHTD.Domain.pdb
+D:\SOFTWARE\PMQLTBHTD\PM_QLTBHTD.Domain\obj\Debug\net8.0\PM_QLTBHTD.Domain.GeneratedMSBuildEditorConfig.editorconfig
+D:\SOFTWARE\PMQLTBHTD\PM_QLTBHTD.Domain\obj\Debug\net8.0\PM_QLTBHTD.Domain.AssemblyInfoInputs.cache
+D:\SOFTWARE\PMQLTBHTD\PM_QLTBHTD.Domain\obj\Debug\net8.0\PM_QLTBHTD.Domain.AssemblyInfo.cs
+D:\SOFTWARE\PMQLTBHTD\PM_QLTBHTD.Domain\obj\Debug\net8.0\PM_QLTBHTD.Domain.csproj.CoreCompileInputs.cache
+D:\SOFTWARE\PMQLTBHTD\PM_QLTBHTD.Domain\obj\Debug\net8.0\PM_QLTBHTD.Domain.dll
+D:\SOFTWARE\PMQLTBHTD\PM_QLTBHTD.Domain\obj\Debug\net8.0\refint\PM_QLTBHTD.Domain.dll
+D:\SOFTWARE\PMQLTBHTD\PM_QLTBHTD.Domain\obj\Debug\net8.0\PM_QLTBHTD.Domain.pdb
+D:\SOFTWARE\PMQLTBHTD\PM_QLTBHTD.Domain\obj\Debug\net8.0\ref\PM_QLTBHTD.Domain.dll
