@@ -482,3 +482,12 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+# ===== FIX FOR MULTI PROJECT (.NET CLEAN ARCH) =====
+**/bin/
+**/obj/
+.vs/
+
+# appsettings local
+**/appsettings.Development.json
+**/appsettings.*.json
+!**/appsettings.json
