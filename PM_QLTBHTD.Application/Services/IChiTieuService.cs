@@ -1,0 +1,15 @@
+using PM_QLTBHTD.Application.DTOs;
+
+namespace PM_QLTBHTD.Application.Services
+{
+    public interface IChiTieuService
+    {
+        Task<IEnumerable<ChiTieuDto>> GetAllAsync();
+        Task<IEnumerable<ChiTieuDto>> GetAllActiveAsync();
+        Task<IEnumerable<ChiTieuDto>> GetByNhomChiTieuAsync(int idNhomChiTieu);
+        Task<ChiTieuDto?> GetByIdAsync(int id);
+        Task<ChiTieuDto> CreateAsync(CreateChiTieuDto dto);
+        Task<ChiTieuDto?> UpdateAsync(int id, UpdateChiTieuDto dto);
+        Task<bool> DeleteAsync(int id);
+    }
+}

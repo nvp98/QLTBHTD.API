@@ -1,13 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace PM_QLTBHTD.Domain.Entities
 {
     public class CBM_ChiTieu
     {
+        [Key]
         public int ID_ChiTieu { get; set; }
         public int ID_NhomChiTieu { get; set; }
         public string TenChiTieu { get; set; } = string.Empty;

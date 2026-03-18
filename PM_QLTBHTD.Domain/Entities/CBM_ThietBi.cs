@@ -1,13 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace PM_QLTBHTD.Domain.Entities
 {
     public class CBM_ThietBi
     {
+        [Key]
         public int ID_ThietBi { get; set; }
         public int ID_Tram { get; set; }
         public int ID_LoaiTB { get; set; }
