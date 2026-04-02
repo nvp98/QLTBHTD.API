@@ -5,6 +5,7 @@ namespace PM_QLTBHTD.Application.DTOs
         public int ID_NhomChiTieu { get; set; }
         public string TenNhom { get; set; } = string.Empty;
         public int ID_LoaiThietBi { get; set; }
+        public string TenLoaiThietBi { get; set; } = string.Empty;
         public int PhienBan { get; set; }
         public int TrangThai { get; set; }
     }

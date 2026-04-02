@@ -4,7 +4,7 @@ namespace PM_QLTBHTD.Application.Services
 {
     public interface IPhieuKiemTraService
     {
-        Task<IEnumerable<PhieuKiemTraDto>> GetAllAsync();
+        Task<PagedResult<PhieuKiemTraDto>> GetPagedAsync(string? search, int page, int pageSize);
         Task<IEnumerable<PhieuKiemTraDto>> GetByThietBiAsync(int idThietBi);
         Task<IEnumerable<PhieuKiemTraDto>> GetByNgayAsync(DateTime tuNgay, DateTime denNgay);
         Task<PhieuKiemTraDetailDto?> GetDetailAsync(int idPhieu);

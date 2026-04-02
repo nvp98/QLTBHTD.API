@@ -1,4 +1,6 @@
+using Microsoft.EntityFrameworkCore;
 using PM_QLTBHTD.Application.DTOs;
+using PM_QLTBHTD.Application.Interfaces;
 using PM_QLTBHTD.Domain.Entities;
 using PM_QLTBHTD.Domain.IRepository;
 
@@ -7,29 +9,45 @@ namespace PM_QLTBHTD.Application.Services
     public class NguongService : INguongService
     {
         private readonly INguongRepository _repository;
+        private readonly IAppDbContext _db;
 
-        public NguongService(INguongRepository repository)
+        public NguongService(INguongRepository repository, IAppDbContext db)
         {
             _repository = repository;
+            _db = db;
         }
 
-        public async Task<IEnumerable<NguongDto>> GetAllAsync()
+        private IQueryable<NguongDto> JoinQuery()
         {
-            var items = await _repository.GetAllAsync();
-            return items.Select(x => MapToDto(x));
+            return from ng in _db.Nguongs
+                   join c in _db.ChiTieus on ng.ID_ChiTieu equals c.ID_ChiTieu
+                   select new NguongDto
+                   {
+                       ID_Nguong = ng.ID_Nguong,
+                       ID_ChiTieu = ng.ID_ChiTieu,
+                       TenChiTieu = c.TenChiTieu,
+                       CanTren = ng.CanTren,
+                       CanDuoi = ng.CanDuoi,
+                       Diem_Si = ng.Diem_Si
+                   };
+        }
+
+        public async Task<PagedResult<NguongDto>> GetPagedAsync(string? search, int page, int pageSize)
+        {
+            var query = JoinQuery().Where(x =>
+                string.IsNullOrEmpty(search)
+                || x.TenChiTieu.Contains(search));
+
+            var total = await query.CountAsync();
+            var items = await query.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
+            return new PagedResult<NguongDto> { Items = items, Total = total, Page = page, PageSize = pageSize };
         }
 
         public async Task<IEnumerable<NguongDto>> GetByChiTieuAsync(int idChiTieu)
-        {
-            var items = await _repository.GetByChiTieuAsync(idChiTieu);
-            return items.Select(x => MapToDto(x));
-        }
+            => await JoinQuery().Where(x => x.ID_ChiTieu == idChiTieu).ToListAsync();
 
         public async Task<NguongDto?> GetByIdAsync(int id)
-        {
-            var item = await _repository.GetByIdAsync(id);
-            return item == null ? null : MapToDto(item);
-        }
+            => await JoinQuery().FirstOrDefaultAsync(x => x.ID_Nguong == id);
 
         public async Task<NguongDto> CreateAsync(CreateNguongDto dto)
         {
@@ -42,7 +60,7 @@ namespace PM_QLTBHTD.Application.Services
             };
             await _repository.AddAsync(entity);
             await _repository.SaveChangesAsync();
-            return MapToDto(entity);
+            return (await GetByIdAsync(entity.ID_Nguong))!;
         }
 
         public async Task<NguongDto?> UpdateAsync(int id, UpdateNguongDto dto)
@@ -56,7 +74,7 @@ namespace PM_QLTBHTD.Application.Services
             entity.Diem_Si = dto.Diem_Si;
             _repository.Update(entity);
             await _repository.SaveChangesAsync();
-            return MapToDto(entity);
+            return await GetByIdAsync(id);
         }
 
         public async Task<bool> DeleteAsync(int id)
@@ -68,14 +86,5 @@ namespace PM_QLTBHTD.Application.Services
             await _repository.SaveChangesAsync();
             return true;
         }
-
-        private static NguongDto MapToDto(CBM_Nguong x) => new()
-        {
-            ID_Nguong = x.ID_Nguong,
-            ID_ChiTieu = x.ID_ChiTieu,
-            CanTren = x.CanTren,
-            CanDuoi = x.CanDuoi,
-            Diem_Si = x.Diem_Si
-        };
     }
 }

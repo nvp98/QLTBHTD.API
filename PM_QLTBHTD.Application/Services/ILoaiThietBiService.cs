@@ -4,7 +4,7 @@ namespace PM_QLTBHTD.Application.Services
 {
     public interface ILoaiThietBiService
     {
-        Task<IEnumerable<LoaiThietBiDto>> GetAllAsync();
+        Task<PagedResult<LoaiThietBiDto>> GetPagedAsync(string? search, int page, int pageSize);
         Task<IEnumerable<LoaiThietBiDto>> GetAllActiveAsync();
         Task<LoaiThietBiDto?> GetByIdAsync(int id);
         Task<LoaiThietBiDto> CreateAsync(CreateLoaiThietBiDto dto);

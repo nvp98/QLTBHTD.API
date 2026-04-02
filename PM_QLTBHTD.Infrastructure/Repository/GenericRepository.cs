@@ -25,6 +25,14 @@ namespace PM_QLTBHTD.Infrastructure.Repository
         public async Task<IEnumerable<T>> FindAsync(Expression<Func<T, bool>> predicate)
             => await _dbSet.Where(predicate).ToListAsync();
 
+        public async Task<(IEnumerable<T> Items, int Total)> GetPagedAsync(Expression<Func<T, bool>> predicate, int page, int pageSize)
+        {
+            var query = _dbSet.Where(predicate);
+            var total = await query.CountAsync();
+            var items = await query.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
+            return (items, total);
+        }
+
         public async Task AddAsync(T entity)
             => await _dbSet.AddAsync(entity);
 

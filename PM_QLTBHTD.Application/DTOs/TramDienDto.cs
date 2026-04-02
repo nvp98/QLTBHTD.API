@@ -4,6 +4,7 @@ namespace PM_QLTBHTD.Application.DTOs
     {
         public int IDTram { get; set; }
         public int IDKhuVuc { get; set; }
+        public string TenKhuVuc { get; set; } = string.Empty;
         public string TenTram { get; set; } = string.Empty;
         public string? DiaDiem { get; set; }
         public int TrangThai { get; set; }

@@ -1,4 +1,6 @@
+using Microsoft.EntityFrameworkCore;
 using PM_QLTBHTD.Application.DTOs;
+using PM_QLTBHTD.Application.Interfaces;
 using PM_QLTBHTD.Domain.Entities;
 using PM_QLTBHTD.Domain.IRepository;
 
@@ -9,67 +11,93 @@ namespace PM_QLTBHTD.Application.Services
         private readonly IPhieuKiemTraRepository _phieuRepo;
         private readonly IChiTietKiemTraRepository _chiTietRepo;
         private readonly INguongRepository _nguongRepo;
+        private readonly IAppDbContext _db;
 
         public PhieuKiemTraService(
             IPhieuKiemTraRepository phieuRepo,
             IChiTietKiemTraRepository chiTietRepo,
-            INguongRepository nguongRepo)
+            INguongRepository nguongRepo,
+            IAppDbContext db)
         {
             _phieuRepo = phieuRepo;
             _chiTietRepo = chiTietRepo;
             _nguongRepo = nguongRepo;
+            _db = db;
         }
 
-        public async Task<IEnumerable<PhieuKiemTraDto>> GetAllAsync()
+        private IQueryable<PhieuKiemTraDto> JoinQuery()
         {
-            var items = await _phieuRepo.GetAllAsync();
-            return items.Select(x => MapToDto(x));
+            return from p in _db.PhieuKiemTras
+                   join tb in _db.ThietBis on p.ID_ThietBi equals tb.ID_ThietBi
+                   select new PhieuKiemTraDto
+                   {
+                       ID_Phieu = p.ID_Phieu,
+                       ID_ThietBi = p.ID_ThietBi,
+                       TenThietBi = tb.TenThietBi,
+                       NgayKiemTra = p.NgayKiemTra,
+                       NguoiKiemTra = p.NguoiKiemTra,
+                       TongDiem_Soqt = p.TongDiem_Soqt,
+                       CapDoCanhBao = p.CapDoCanhBao,
+                       GhiChuChung = p.GhiChuChung
+                   };
+        }
+
+        public async Task<PagedResult<PhieuKiemTraDto>> GetPagedAsync(string? search, int page, int pageSize)
+        {
+            var query = JoinQuery().Where(x =>
+                string.IsNullOrEmpty(search)
+                || x.TenThietBi.Contains(search)
+                || (x.NguoiKiemTra != null && x.NguoiKiemTra.Contains(search)));
+
+            var total = await query.CountAsync();
+            var items = await query.OrderByDescending(x => x.NgayKiemTra)
+                                   .Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
+            return new PagedResult<PhieuKiemTraDto> { Items = items, Total = total, Page = page, PageSize = pageSize };
         }
 
         public async Task<IEnumerable<PhieuKiemTraDto>> GetByThietBiAsync(int idThietBi)
-        {
-            var items = await _phieuRepo.GetByThietBiAsync(idThietBi);
-            return items.Select(x => MapToDto(x));
-        }
+            => await JoinQuery().Where(x => x.ID_ThietBi == idThietBi)
+                                .OrderByDescending(x => x.NgayKiemTra).ToListAsync();
 
         public async Task<IEnumerable<PhieuKiemTraDto>> GetByNgayAsync(DateTime tuNgay, DateTime denNgay)
-        {
-            var items = await _phieuRepo.GetByNgayKiemTraAsync(tuNgay, denNgay);
-            return items.Select(x => MapToDto(x));
-        }
+            => await JoinQuery().Where(x => x.NgayKiemTra >= tuNgay && x.NgayKiemTra <= denNgay)
+                                .OrderByDescending(x => x.NgayKiemTra).ToListAsync();
+
+        public async Task<PhieuKiemTraDto?> GetByIdAsync(int id)
+            => await JoinQuery().FirstOrDefaultAsync(x => x.ID_Phieu == id);
 
         public async Task<PhieuKiemTraDetailDto?> GetDetailAsync(int idPhieu)
         {
-            var phieu = await _phieuRepo.GetWithChiTietAsync(idPhieu);
+            var phieu = await JoinQuery().FirstOrDefaultAsync(x => x.ID_Phieu == idPhieu);
             if (phieu == null) return null;
 
-            var chiTiets = await _chiTietRepo.GetByPhieuAsync(idPhieu);
+            var chiTiets = await (from ct in _db.ChiTietKiemTras
+                                  join c in _db.ChiTieus on ct.ID_ChiTieu equals c.ID_ChiTieu
+                                  where ct.IDPhieu == idPhieu
+                                  select new ChiTietKiemTraDto
+                                  {
+                                      ID_ChiTiet = ct.ID_ChiTiet,
+                                      IDPhieu = ct.IDPhieu,
+                                      ID_ChiTieu = ct.ID_ChiTieu,
+                                      TenChiTieu = c.TenChiTieu,
+                                      GiaTriNhap_So = ct.GiaTriNhap_So,
+                                      GiaTriNhap_Chu = ct.GiaTriNhap_Chu,
+                                      Diem_Si_DatDuoc = ct.Diem_Si_DatDuoc,
+                                      GhiChu = ct.GhiChu
+                                  }).ToListAsync();
+
             return new PhieuKiemTraDetailDto
             {
                 ID_Phieu = phieu.ID_Phieu,
                 ID_ThietBi = phieu.ID_ThietBi,
+                TenThietBi = phieu.TenThietBi,
                 NgayKiemTra = phieu.NgayKiemTra,
                 NguoiKiemTra = phieu.NguoiKiemTra,
                 TongDiem_Soqt = phieu.TongDiem_Soqt,
                 CapDoCanhBao = phieu.CapDoCanhBao,
                 GhiChuChung = phieu.GhiChuChung,
-                ChiTiets = chiTiets.Select(ct => new ChiTietKiemTraDto
-                {
-                    ID_ChiTiet = ct.ID_ChiTiet,
-                    IDPhieu = ct.IDPhieu,
-                    ID_ChiTieu = ct.ID_ChiTieu,
-                    GiaTriNhap_So = ct.GiaTriNhap_So,
-                    GiaTriNhap_Chu = ct.GiaTriNhap_Chu,
-                    Diem_Si_DatDuoc = ct.Diem_Si_DatDuoc,
-                    GhiChu = ct.GhiChu
-                }).ToList()
+                ChiTiets = chiTiets
             };
-        }
-
-        public async Task<PhieuKiemTraDto?> GetByIdAsync(int id)
-        {
-            var item = await _phieuRepo.GetByIdAsync(id);
-            return item == null ? null : MapToDto(item);
         }
 
         public async Task<PhieuKiemTraDto> CreateAsync(CreatePhieuKiemTraDto dto)
@@ -106,7 +134,7 @@ namespace PM_QLTBHTD.Application.Services
             _phieuRepo.Update(phieu);
             await _phieuRepo.SaveChangesAsync();
 
-            return MapToDto(phieu);
+            return (await GetByIdAsync(phieu.ID_Phieu))!;
         }
 
         public async Task<PhieuKiemTraDto?> UpdateAsync(int id, UpdatePhieuKiemTraDto dto)
@@ -122,7 +150,7 @@ namespace PM_QLTBHTD.Application.Services
             entity.GhiChuChung = dto.GhiChuChung;
             _phieuRepo.Update(entity);
             await _phieuRepo.SaveChangesAsync();
-            return MapToDto(entity);
+            return await GetByIdAsync(id);
         }
 
         public async Task<bool> DeleteAsync(int id)
@@ -155,17 +183,6 @@ namespace PM_QLTBHTD.Application.Services
             >= 50 => "C - Trung bình",
             >= 30 => "D - Kém",
             _ => "E - Nguy hiểm"
-        };
-
-        private static PhieuKiemTraDto MapToDto(PhieuKiemTra x) => new()
-        {
-            ID_Phieu = x.ID_Phieu,
-            ID_ThietBi = x.ID_ThietBi,
-            NgayKiemTra = x.NgayKiemTra,
-            NguoiKiemTra = x.NguoiKiemTra,
-            TongDiem_Soqt = x.TongDiem_Soqt,
-            CapDoCanhBao = x.CapDoCanhBao,
-            GhiChuChung = x.GhiChuChung
         };
     }
 }

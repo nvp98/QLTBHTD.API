@@ -4,7 +4,7 @@ namespace PM_QLTBHTD.Application.Services
 {
     public interface INhomChiTieuService
     {
-        Task<IEnumerable<NhomChiTieuDto>> GetAllAsync();
+        Task<PagedResult<NhomChiTieuDto>> GetPagedAsync(string? search, int page, int pageSize);
         Task<IEnumerable<NhomChiTieuDto>> GetAllActiveAsync();
         Task<IEnumerable<NhomChiTieuDto>> GetByLoaiThietBiAsync(int idLoaiThietBi);
         Task<NhomChiTieuDto?> GetByIdAsync(int id);

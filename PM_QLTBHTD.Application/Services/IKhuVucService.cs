@@ -4,7 +4,7 @@ namespace PM_QLTBHTD.Application.Services
 {
     public interface IKhuVucService
     {
-        Task<IEnumerable<KhuVucDto>> GetAllAsync();
+        Task<PagedResult<KhuVucDto>> GetPagedAsync(string? search, int page, int pageSize);
         Task<IEnumerable<KhuVucDto>> GetAllActiveAsync();
         Task<KhuVucDto?> GetByIdAsync(int id);
         Task<KhuVucDto> CreateAsync(CreateKhuVucDto dto);

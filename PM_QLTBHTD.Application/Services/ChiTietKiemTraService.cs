@@ -1,4 +1,6 @@
+using Microsoft.EntityFrameworkCore;
 using PM_QLTBHTD.Application.DTOs;
+using PM_QLTBHTD.Application.Interfaces;
 using PM_QLTBHTD.Domain.Entities;
 using PM_QLTBHTD.Domain.IRepository;
 
@@ -7,23 +9,36 @@ namespace PM_QLTBHTD.Application.Services
     public class ChiTietKiemTraService : IChiTietKiemTraService
     {
         private readonly IChiTietKiemTraRepository _repository;
+        private readonly IAppDbContext _db;
 
-        public ChiTietKiemTraService(IChiTietKiemTraRepository repository)
+        public ChiTietKiemTraService(IChiTietKiemTraRepository repository, IAppDbContext db)
         {
             _repository = repository;
+            _db = db;
+        }
+
+        private IQueryable<ChiTietKiemTraDto> JoinQuery()
+        {
+            return from ct in _db.ChiTietKiemTras
+                   join c in _db.ChiTieus on ct.ID_ChiTieu equals c.ID_ChiTieu
+                   select new ChiTietKiemTraDto
+                   {
+                       ID_ChiTiet = ct.ID_ChiTiet,
+                       IDPhieu = ct.IDPhieu,
+                       ID_ChiTieu = ct.ID_ChiTieu,
+                       TenChiTieu = c.TenChiTieu,
+                       GiaTriNhap_So = ct.GiaTriNhap_So,
+                       GiaTriNhap_Chu = ct.GiaTriNhap_Chu,
+                       Diem_Si_DatDuoc = ct.Diem_Si_DatDuoc,
+                       GhiChu = ct.GhiChu
+                   };
         }
 
         public async Task<IEnumerable<ChiTietKiemTraDto>> GetByPhieuAsync(int idPhieu)
-        {
-            var items = await _repository.GetByPhieuAsync(idPhieu);
-            return items.Select(x => MapToDto(x));
-        }
+            => await JoinQuery().Where(x => x.IDPhieu == idPhieu).ToListAsync();
 
         public async Task<ChiTietKiemTraDto?> GetByIdAsync(int id)
-        {
-            var item = await _repository.GetByIdAsync(id);
-            return item == null ? null : MapToDto(item);
-        }
+            => await JoinQuery().FirstOrDefaultAsync(x => x.ID_ChiTiet == id);
 
         public async Task<ChiTietKiemTraDto> CreateAsync(int idPhieu, CreateChiTietKiemTraDto dto)
         {
@@ -37,7 +52,7 @@ namespace PM_QLTBHTD.Application.Services
             };
             await _repository.AddAsync(entity);
             await _repository.SaveChangesAsync();
-            return MapToDto(entity);
+            return (await GetByIdAsync(entity.ID_ChiTiet))!;
         }
 
         public async Task<ChiTietKiemTraDto?> UpdateAsync(int id, UpdateChiTietKiemTraDto dto)
@@ -53,7 +68,7 @@ namespace PM_QLTBHTD.Application.Services
             entity.GhiChu = dto.GhiChu;
             _repository.Update(entity);
             await _repository.SaveChangesAsync();
-            return MapToDto(entity);
+            return await GetByIdAsync(id);
         }
 
         public async Task<bool> DeleteAsync(int id)
@@ -65,16 +80,5 @@ namespace PM_QLTBHTD.Application.Services
             await _repository.SaveChangesAsync();
             return true;
         }
-
-        private static ChiTietKiemTraDto MapToDto(ChiTietKiemTra x) => new()
-        {
-            ID_ChiTiet = x.ID_ChiTiet,
-            IDPhieu = x.IDPhieu,
-            ID_ChiTieu = x.ID_ChiTieu,
-            GiaTriNhap_So = x.GiaTriNhap_So,
-            GiaTriNhap_Chu = x.GiaTriNhap_Chu,
-            Diem_Si_DatDuoc = x.Diem_Si_DatDuoc,
-            GhiChu = x.GhiChu
-        };
     }
 }

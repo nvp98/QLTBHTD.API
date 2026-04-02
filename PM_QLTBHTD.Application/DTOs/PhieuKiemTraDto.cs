@@ -4,6 +4,7 @@ namespace PM_QLTBHTD.Application.DTOs
     {
         public int ID_Phieu { get; set; }
         public int ID_ThietBi { get; set; }
+        public string TenThietBi { get; set; } = string.Empty;
         public DateTime NgayKiemTra { get; set; }
         public string? NguoiKiemTra { get; set; }
         public decimal? TongDiem_Soqt { get; set; }

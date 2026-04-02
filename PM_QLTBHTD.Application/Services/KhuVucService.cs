@@ -13,16 +13,25 @@ namespace PM_QLTBHTD.Application.Services
             _repository = repository;
         }
 
-        public async Task<IEnumerable<KhuVucDto>> GetAllAsync()
+        public async Task<PagedResult<KhuVucDto>> GetPagedAsync(string? search, int page, int pageSize)
         {
-            var items = await _repository.GetAllAsync();
-            return items.Select(x => MapToDto(x));
+            var (items, total) = await _repository.GetPagedAsync(
+                x => string.IsNullOrEmpty(search) || x.TenKhuVuc.Contains(search),
+                page, pageSize);
+
+            return new PagedResult<KhuVucDto>
+            {
+                Items = items.Select(MapToDto),
+                Total = total,
+                Page = page,
+                PageSize = pageSize
+            };
         }
 
         public async Task<IEnumerable<KhuVucDto>> GetAllActiveAsync()
         {
             var items = await _repository.GetAllActiveAsync();
-            return items.Select(x => MapToDto(x));
+            return items.Select(MapToDto);
         }
 
         public async Task<KhuVucDto?> GetByIdAsync(int id)

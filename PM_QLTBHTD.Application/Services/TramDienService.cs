@@ -1,4 +1,6 @@
+using Microsoft.EntityFrameworkCore;
 using PM_QLTBHTD.Application.DTOs;
+using PM_QLTBHTD.Application.Interfaces;
 using PM_QLTBHTD.Domain.Entities;
 using PM_QLTBHTD.Domain.IRepository;
 
@@ -7,34 +9,82 @@ namespace PM_QLTBHTD.Application.Services
     public class TramDienService : ITramDienService
     {
         private readonly ITramDienRepository _repository;
+        private readonly IAppDbContext _db;
 
-        public TramDienService(ITramDienRepository repository)
+        public TramDienService(ITramDienRepository repository, IAppDbContext db)
         {
             _repository = repository;
+            _db = db;
         }
 
-        public async Task<IEnumerable<TramDienDto>> GetAllAsync()
+        public async Task<PagedResult<TramDienDto>> GetPagedAsync(string? search, int page, int pageSize)
         {
-            var items = await _repository.GetAllAsync();
-            return items.Select(x => MapToDto(x));
+            var query = from t in _db.TramDiens
+                        join k in _db.KhuVucs on t.IDKhuVuc equals k.ID_KhuVuc
+                        where string.IsNullOrEmpty(search)
+                              || t.TenTram.Contains(search)
+                              || (t.DiaDiem != null && t.DiaDiem.Contains(search))
+                        select new TramDienDto
+                        {
+                            IDTram = t.IDTram,
+                            IDKhuVuc = t.IDKhuVuc,
+                            TenKhuVuc = k.TenKhuVuc,
+                            TenTram = t.TenTram,
+                            DiaDiem = t.DiaDiem,
+                            TrangThai = t.TrangThai
+                        };
+
+            var total = await query.CountAsync();
+            var items = await query.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
+            return new PagedResult<TramDienDto> { Items = items, Total = total, Page = page, PageSize = pageSize };
         }
 
         public async Task<IEnumerable<TramDienDto>> GetAllActiveAsync()
         {
-            var items = await _repository.GetAllActiveAsync();
-            return items.Select(x => MapToDto(x));
+            return await (from t in _db.TramDiens
+                          join k in _db.KhuVucs on t.IDKhuVuc equals k.ID_KhuVuc
+                          where t.TrangThai == 1
+                          select new TramDienDto
+                          {
+                              IDTram = t.IDTram,
+                              IDKhuVuc = t.IDKhuVuc,
+                              TenKhuVuc = k.TenKhuVuc,
+                              TenTram = t.TenTram,
+                              DiaDiem = t.DiaDiem,
+                              TrangThai = t.TrangThai
+                          }).ToListAsync();
         }
 
         public async Task<IEnumerable<TramDienDto>> GetByKhuVucAsync(int idKhuVuc)
         {
-            var items = await _repository.GetByKhuVucAsync(idKhuVuc);
-            return items.Select(x => MapToDto(x));
+            return await (from t in _db.TramDiens
+                          join k in _db.KhuVucs on t.IDKhuVuc equals k.ID_KhuVuc
+                          where t.IDKhuVuc == idKhuVuc
+                          select new TramDienDto
+                          {
+                              IDTram = t.IDTram,
+                              IDKhuVuc = t.IDKhuVuc,
+                              TenKhuVuc = k.TenKhuVuc,
+                              TenTram = t.TenTram,
+                              DiaDiem = t.DiaDiem,
+                              TrangThai = t.TrangThai
+                          }).ToListAsync();
         }
 
         public async Task<TramDienDto?> GetByIdAsync(int id)
         {
-            var item = await _repository.GetByIdAsync(id);
-            return item == null ? null : MapToDto(item);
+            return await (from t in _db.TramDiens
+                          join k in _db.KhuVucs on t.IDKhuVuc equals k.ID_KhuVuc
+                          where t.IDTram == id
+                          select new TramDienDto
+                          {
+                              IDTram = t.IDTram,
+                              IDKhuVuc = t.IDKhuVuc,
+                              TenKhuVuc = k.TenKhuVuc,
+                              TenTram = t.TenTram,
+                              DiaDiem = t.DiaDiem,
+                              TrangThai = t.TrangThai
+                          }).FirstOrDefaultAsync();
         }
 
         public async Task<TramDienDto> CreateAsync(CreateTramDienDto dto)
@@ -48,7 +98,7 @@ namespace PM_QLTBHTD.Application.Services
             };
             await _repository.AddAsync(entity);
             await _repository.SaveChangesAsync();
-            return MapToDto(entity);
+            return (await GetByIdAsync(entity.IDTram))!;
         }
 
         public async Task<TramDienDto?> UpdateAsync(int id, UpdateTramDienDto dto)
@@ -62,7 +112,7 @@ namespace PM_QLTBHTD.Application.Services
             entity.TrangThai = dto.TrangThai;
             _repository.Update(entity);
             await _repository.SaveChangesAsync();
-            return MapToDto(entity);
+            return await GetByIdAsync(id);
         }
 
         public async Task<bool> DeleteAsync(int id)
@@ -74,14 +124,5 @@ namespace PM_QLTBHTD.Application.Services
             await _repository.SaveChangesAsync();
             return true;
         }
-
-        private static TramDienDto MapToDto(CBM_TramDien x) => new()
-        {
-            IDTram = x.IDTram,
-            IDKhuVuc = x.IDKhuVuc,
-            TenTram = x.TenTram,
-            DiaDiem = x.DiaDiem,
-            TrangThai = x.TrangThai
-        };
     }
 }

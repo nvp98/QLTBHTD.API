@@ -1,4 +1,6 @@
+using Microsoft.EntityFrameworkCore;
 using PM_QLTBHTD.Application.DTOs;
+using PM_QLTBHTD.Application.Interfaces;
 using PM_QLTBHTD.Domain.Entities;
 using PM_QLTBHTD.Domain.IRepository;
 
@@ -7,35 +9,49 @@ namespace PM_QLTBHTD.Application.Services
     public class NhomChiTieuService : INhomChiTieuService
     {
         private readonly INhomChiTieuRepository _repository;
+        private readonly IAppDbContext _db;
 
-        public NhomChiTieuService(INhomChiTieuRepository repository)
+        public NhomChiTieuService(INhomChiTieuRepository repository, IAppDbContext db)
         {
             _repository = repository;
+            _db = db;
         }
 
-        public async Task<IEnumerable<NhomChiTieuDto>> GetAllAsync()
+        private IQueryable<NhomChiTieuDto> JoinQuery()
         {
-            var items = await _repository.GetAllAsync();
-            return items.Select(x => MapToDto(x));
+            return from n in _db.NhomChiTieus
+                   join l in _db.LoaiThietBis on n.ID_LoaiThietBi equals l.ID_LoaiThietBi
+                   select new NhomChiTieuDto
+                   {
+                       ID_NhomChiTieu = n.ID_NhomChiTieu,
+                       TenNhom = n.TenNhom,
+                       ID_LoaiThietBi = n.ID_LoaiThietBi,
+                       TenLoaiThietBi = l.TenLoaiTB,
+                       PhienBan = n.PhienBan,
+                       TrangThai = n.TrangThai
+                   };
+        }
+
+        public async Task<PagedResult<NhomChiTieuDto>> GetPagedAsync(string? search, int page, int pageSize)
+        {
+            var query = JoinQuery().Where(x =>
+                string.IsNullOrEmpty(search)
+                || x.TenNhom.Contains(search)
+                || x.TenLoaiThietBi.Contains(search));
+
+            var total = await query.CountAsync();
+            var items = await query.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
+            return new PagedResult<NhomChiTieuDto> { Items = items, Total = total, Page = page, PageSize = pageSize };
         }
 
         public async Task<IEnumerable<NhomChiTieuDto>> GetAllActiveAsync()
-        {
-            var items = await _repository.GetAllActiveAsync();
-            return items.Select(x => MapToDto(x));
-        }
+            => await JoinQuery().Where(x => x.TrangThai == 1).ToListAsync();
 
         public async Task<IEnumerable<NhomChiTieuDto>> GetByLoaiThietBiAsync(int idLoaiThietBi)
-        {
-            var items = await _repository.GetByLoaiThietBiAsync(idLoaiThietBi);
-            return items.Select(x => MapToDto(x));
-        }
+            => await JoinQuery().Where(x => x.ID_LoaiThietBi == idLoaiThietBi).ToListAsync();
 
         public async Task<NhomChiTieuDto?> GetByIdAsync(int id)
-        {
-            var item = await _repository.GetByIdAsync(id);
-            return item == null ? null : MapToDto(item);
-        }
+            => await JoinQuery().FirstOrDefaultAsync(x => x.ID_NhomChiTieu == id);
 
         public async Task<NhomChiTieuDto> CreateAsync(CreateNhomChiTieuDto dto)
         {
@@ -48,7 +64,7 @@ namespace PM_QLTBHTD.Application.Services
             };
             await _repository.AddAsync(entity);
             await _repository.SaveChangesAsync();
-            return MapToDto(entity);
+            return (await GetByIdAsync(entity.ID_NhomChiTieu))!;
         }
 
         public async Task<NhomChiTieuDto?> UpdateAsync(int id, UpdateNhomChiTieuDto dto)
@@ -62,7 +78,7 @@ namespace PM_QLTBHTD.Application.Services
             entity.TrangThai = dto.TrangThai;
             _repository.Update(entity);
             await _repository.SaveChangesAsync();
-            return MapToDto(entity);
+            return await GetByIdAsync(id);
         }
 
         public async Task<bool> DeleteAsync(int id)
@@ -74,14 +90,5 @@ namespace PM_QLTBHTD.Application.Services
             await _repository.SaveChangesAsync();
             return true;
         }
-
-        private static NhomChiTieuDto MapToDto(CBM_NhomChiTieu x) => new()
-        {
-            ID_NhomChiTieu = x.ID_NhomChiTieu,
-            TenNhom = x.TenNhom,
-            ID_LoaiThietBi = x.ID_LoaiThietBi,
-            PhienBan = x.PhienBan,
-            TrangThai = x.TrangThai
-        };
     }
 }

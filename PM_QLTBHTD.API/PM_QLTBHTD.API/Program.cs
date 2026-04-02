@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using PM_QLTBHTD.Application.Interfaces;
 using PM_QLTBHTD.Application.Services;
 using PM_QLTBHTD.Domain.IRepository;
 using PM_QLTBHTD.Infrastructure.Persistence;
@@ -9,6 +10,7 @@ var builder = WebApplication.CreateBuilder(args);
 // DbContext
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DbConnectionString")));
+builder.Services.AddScoped<IAppDbContext>(sp => sp.GetRequiredService<AppDbContext>());
 
 // Repositories
 builder.Services.AddScoped<IKhuVucRepository, KhuVucRepository>();
@@ -48,11 +50,10 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "CBM API v1"));
-}
+
+app.UseSwagger();
+app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "CBM API v1"));
+
 
 app.UseCors("AllowAll");
 app.UseHttpsRedirection();

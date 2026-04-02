@@ -4,7 +4,7 @@ namespace PM_QLTBHTD.Application.Services
 {
     public interface INguongService
     {
-        Task<IEnumerable<NguongDto>> GetAllAsync();
+        Task<PagedResult<NguongDto>> GetPagedAsync(string? search, int page, int pageSize);
         Task<IEnumerable<NguongDto>> GetByChiTieuAsync(int idChiTieu);
         Task<NguongDto?> GetByIdAsync(int id);
         Task<NguongDto> CreateAsync(CreateNguongDto dto);

@@ -1,4 +1,6 @@
+using Microsoft.EntityFrameworkCore;
 using PM_QLTBHTD.Application.DTOs;
+using PM_QLTBHTD.Application.Interfaces;
 using PM_QLTBHTD.Domain.Entities;
 using PM_QLTBHTD.Domain.IRepository;
 
@@ -7,35 +9,50 @@ namespace PM_QLTBHTD.Application.Services
     public class ChiTieuService : IChiTieuService
     {
         private readonly IChiTieuRepository _repository;
+        private readonly IAppDbContext _db;
 
-        public ChiTieuService(IChiTieuRepository repository)
+        public ChiTieuService(IChiTieuRepository repository, IAppDbContext db)
         {
             _repository = repository;
+            _db = db;
+        }
+        private IQueryable<ChiTieuDto> JoinQuery()
+        {
+            return from c in _db.ChiTieus.AsNoTracking()
+                   join n in _db.NhomChiTieus.AsNoTracking()
+                   on c.ID_NhomChiTieu equals n.ID_NhomChiTieu into gj
+                   from n in gj.DefaultIfEmpty()
+                   select new ChiTieuDto
+                   {
+                       ID_ChiTieu = c.ID_ChiTieu,
+                       ID_NhomChiTieu = c.ID_NhomChiTieu,
+                       TenNhom = n != null ? n.TenNhom : "",
+                       TenChiTieu = c.TenChiTieu,
+                       TrongSo_Wi = c.TrongSo_Wi,
+                       TrangThai = c.TrangThai
+                   };
         }
 
-        public async Task<IEnumerable<ChiTieuDto>> GetAllAsync()
+        public async Task<PagedResult<ChiTieuDto>> GetPagedAsync(string? search, int page, int pageSize)
         {
-            var items = await _repository.GetAllAsync();
-            return items.Select(x => MapToDto(x));
+            var query = JoinQuery().Where(x =>
+                string.IsNullOrEmpty(search)
+                || x.TenChiTieu.Contains(search)
+                || x.TenNhom.Contains(search));
+
+            var total = await query.CountAsync();
+            var items = await query.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
+            return new PagedResult<ChiTieuDto> { Items = items, Total = total, Page = page, PageSize = pageSize };
         }
 
         public async Task<IEnumerable<ChiTieuDto>> GetAllActiveAsync()
-        {
-            var items = await _repository.GetAllActiveAsync();
-            return items.Select(x => MapToDto(x));
-        }
+            => await JoinQuery().Where(x => x.TrangThai == 1).ToListAsync();
 
         public async Task<IEnumerable<ChiTieuDto>> GetByNhomChiTieuAsync(int idNhomChiTieu)
-        {
-            var items = await _repository.GetByNhomChiTieuAsync(idNhomChiTieu);
-            return items.Select(x => MapToDto(x));
-        }
+            => await JoinQuery().Where(x => x.ID_NhomChiTieu == idNhomChiTieu).ToListAsync();
 
         public async Task<ChiTieuDto?> GetByIdAsync(int id)
-        {
-            var item = await _repository.GetByIdAsync(id);
-            return item == null ? null : MapToDto(item);
-        }
+            => await JoinQuery().FirstOrDefaultAsync(x => x.ID_ChiTieu == id);
 
         public async Task<ChiTieuDto> CreateAsync(CreateChiTieuDto dto)
         {
@@ -48,7 +65,7 @@ namespace PM_QLTBHTD.Application.Services
             };
             await _repository.AddAsync(entity);
             await _repository.SaveChangesAsync();
-            return MapToDto(entity);
+            return (await GetByIdAsync(entity.ID_ChiTieu))!;
         }
 
         public async Task<ChiTieuDto?> UpdateAsync(int id, UpdateChiTieuDto dto)
@@ -62,7 +79,7 @@ namespace PM_QLTBHTD.Application.Services
             entity.TrangThai = dto.TrangThai;
             _repository.Update(entity);
             await _repository.SaveChangesAsync();
-            return MapToDto(entity);
+            return await GetByIdAsync(id);
         }
 
         public async Task<bool> DeleteAsync(int id)
@@ -74,14 +91,5 @@ namespace PM_QLTBHTD.Application.Services
             await _repository.SaveChangesAsync();
             return true;
         }
-
-        private static ChiTieuDto MapToDto(CBM_ChiTieu x) => new()
-        {
-            ID_ChiTieu = x.ID_ChiTieu,
-            ID_NhomChiTieu = x.ID_NhomChiTieu,
-            TenChiTieu = x.TenChiTieu,
-            TrongSo_Wi = x.TrongSo_Wi,
-            TrangThai = x.TrangThai
-        };
     }
 }

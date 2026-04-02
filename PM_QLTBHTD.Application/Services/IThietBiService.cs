@@ -4,7 +4,7 @@ namespace PM_QLTBHTD.Application.Services
 {
     public interface IThietBiService
     {
-        Task<IEnumerable<ThietBiDto>> GetAllAsync();
+        Task<PagedResult<ThietBiDto>> GetPagedAsync(string? search, int page, int pageSize);
         Task<IEnumerable<ThietBiDto>> GetAllActiveAsync();
         Task<IEnumerable<ThietBiDto>> GetByTramAsync(int idTram);
         Task<IEnumerable<ThietBiDto>> GetByLoaiThietBiAsync(int idLoaiTB);
