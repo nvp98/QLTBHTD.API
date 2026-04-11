@@ -23,12 +23,14 @@ namespace PM_QLTBHTD.Application.Services
                    join c in _db.ChiTieus on ng.ID_ChiTieu equals c.ID_ChiTieu
                    select new NguongDto
                    {
-                       ID_Nguong = ng.ID_Nguong,
-                       ID_ChiTieu = ng.ID_ChiTieu,
-                       TenChiTieu = c.TenChiTieu,
-                       CanTren = ng.CanTren,
-                       CanDuoi = ng.CanDuoi,
-                       Diem_Si = ng.Diem_Si
+                       ID_Nguong      = ng.ID_Nguong,
+                       ID_ChiTieu     = ng.ID_ChiTieu,
+                       TenChiTieu     = c.TenChiTieu,
+                       CanTren        = ng.CanTren,
+                       CanDuoi        = ng.CanDuoi,
+                       Diem_Si        = ng.Diem_Si,
+                       CanDuoi_BaoGom = ng.CanDuoi_BaoGom,
+                       CanTren_BaoGom = ng.CanTren_BaoGom
                    };
         }
 
@@ -56,7 +58,9 @@ namespace PM_QLTBHTD.Application.Services
                 ID_ChiTieu = dto.ID_ChiTieu,
                 CanTren = dto.CanTren,
                 CanDuoi = dto.CanDuoi,
-                Diem_Si = dto.Diem_Si
+                Diem_Si = dto.Diem_Si,
+                CanDuoi_BaoGom = dto.CanDuoi_BaoGom,
+                CanTren_BaoGom =dto.CanTren_BaoGom
             };
             await _repository.AddAsync(entity);
             await _repository.SaveChangesAsync();
@@ -72,6 +76,9 @@ namespace PM_QLTBHTD.Application.Services
             entity.CanTren = dto.CanTren;
             entity.CanDuoi = dto.CanDuoi;
             entity.Diem_Si = dto.Diem_Si;
+            entity.CanDuoi_BaoGom = dto.CanDuoi_BaoGom;
+            entity.CanTren_BaoGom = dto.CanTren_BaoGom;
+
             _repository.Update(entity);
             await _repository.SaveChangesAsync();
             return await GetByIdAsync(id);
@@ -86,5 +93,6 @@ namespace PM_QLTBHTD.Application.Services
             await _repository.SaveChangesAsync();
             return true;
         }
+
     }
 }

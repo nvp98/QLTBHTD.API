@@ -6,7 +6,11 @@ namespace PM_QLTBHTD.Domain.Entities
     {
         [Key]
         public int ID_Phieu { get; set; }
+        public string? SoPhieu { get; set; }
         public int ID_ThietBi { get; set; }
+
+        /// <summary>Nhóm chỉ tiêu được đo trong phiếu này. NULL = kiểm tra toàn diện tất cả nhóm.</summary>
+        public int? ID_NhomChiTieu { get; set; }
 
         public DateTime NgayKiemTra { get; set; }
         public string? NguoiKiemTra { get; set; }

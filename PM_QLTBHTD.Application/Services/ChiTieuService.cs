@@ -20,28 +20,40 @@ namespace PM_QLTBHTD.Application.Services
         {
             return from c in _db.ChiTieus.AsNoTracking()
                    join n in _db.NhomChiTieus.AsNoTracking()
-                   on c.ID_NhomChiTieu equals n.ID_NhomChiTieu into gj
+                       on c.ID_NhomChiTieu equals n.ID_NhomChiTieu into gj
                    from n in gj.DefaultIfEmpty()
+                   join l in _db.LoaiThietBis.AsNoTracking()
+                       on (n != null ? n.ID_LoaiThietBi : 0) equals l.ID_LoaiThietBi into lj
+                   from l in lj.DefaultIfEmpty()
                    select new ChiTieuDto
                    {
-                       ID_ChiTieu = c.ID_ChiTieu,
+                       ID_ChiTieu     = c.ID_ChiTieu,
                        ID_NhomChiTieu = c.ID_NhomChiTieu,
-                       TenNhom = n != null ? n.TenNhom : "",
-                       TenChiTieu = c.TenChiTieu,
-                       TrongSo_Wi = c.TrongSo_Wi,
-                       TrangThai = c.TrangThai
+                       TenNhom        = n != null ? n.TenNhom : "",
+                       ID_LoaiThietBi = n != null ? n.ID_LoaiThietBi : 0,
+                       TenChiTieu     = c.TenChiTieu,
+                       TrongSo_Wi     = c.TrongSo_Wi,
+                       TrangThai      = c.TrangThai
                    };
         }
 
-        public async Task<PagedResult<ChiTieuDto>> GetPagedAsync(string? search, int page, int pageSize)
+        public async Task<PagedResult<ChiTieuDto>> GetPagedAsync(string? search, int? idNhom, int? idLoai, int page, int pageSize)
         {
-            var query = JoinQuery().Where(x =>
-                string.IsNullOrEmpty(search)
-                || x.TenChiTieu.Contains(search)
-                || x.TenNhom.Contains(search));
+            var query = JoinQuery();
+
+            if (!string.IsNullOrEmpty(search))
+                query = query.Where(x =>
+                    x.TenChiTieu.Contains(search) || x.TenNhom.Contains(search));
+
+            if (idNhom.HasValue)
+                query = query.Where(x => x.ID_NhomChiTieu == idNhom.Value);
+
+            if (idLoai.HasValue)
+                query = query.Where(x => x.ID_LoaiThietBi == idLoai.Value);
 
             var total = await query.CountAsync();
-            var items = await query.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
+            var items = await query.OrderBy(x => x.ID_NhomChiTieu).ThenBy(x => x.ID_ChiTieu)
+                                   .Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
             return new PagedResult<ChiTieuDto> { Items = items, Total = total, Page = page, PageSize = pageSize };
         }
 

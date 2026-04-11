@@ -5,6 +5,8 @@ namespace PM_QLTBHTD.Application.DTOs
         public int ID_Phieu { get; set; }
         public int ID_ThietBi { get; set; }
         public string TenThietBi { get; set; } = string.Empty;
+        public int? ID_NhomChiTieu { get; set; }
+        public string? TenNhom { get; set; }
         public DateTime NgayKiemTra { get; set; }
         public string? NguoiKiemTra { get; set; }
         public decimal? TongDiem_Soqt { get; set; }
@@ -15,6 +17,8 @@ namespace PM_QLTBHTD.Application.DTOs
     public class CreatePhieuKiemTraDto
     {
         public int ID_ThietBi { get; set; }
+        /// <summary>Nhóm chỉ tiêu cần đo. NULL = kiểm tra toàn diện.</summary>
+        public int? ID_NhomChiTieu { get; set; }
         public DateTime NgayKiemTra { get; set; }
         public string? NguoiKiemTra { get; set; }
         public string? GhiChuChung { get; set; }
@@ -24,6 +28,7 @@ namespace PM_QLTBHTD.Application.DTOs
     public class UpdatePhieuKiemTraDto
     {
         public int ID_ThietBi { get; set; }
+        public int? ID_NhomChiTieu { get; set; }
         public DateTime NgayKiemTra { get; set; }
         public string? NguoiKiemTra { get; set; }
         public decimal? TongDiem_Soqt { get; set; }
