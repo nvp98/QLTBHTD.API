@@ -10,6 +10,7 @@ namespace PM_QLTBHTD.Domain.Entities
         public string? TenChiTieu { get; set; } = string.Empty;
         public decimal? TrongSo_Wi { get; set; }
         public int TrangThai { get; set; }
+        public string? LoaiTinhDiem { get; set; }
 
     }
 }

@@ -10,6 +10,8 @@ namespace PM_QLTBHTD.Application.DTOs
         public decimal? Diem_Si { get; set; }
         public bool CanDuoi_BaoGom { get; set; }
         public bool CanTren_BaoGom { get; set; }
+        /// <summary>Biểu thức NCalc (ưu tiên hơn CanDuoi/CanTren khi có giá trị).</summary>
+        public string? BieuThuc_Logic { get; set; }
     }
 
     public class CreateNguongDto
@@ -22,6 +24,8 @@ namespace PM_QLTBHTD.Application.DTOs
         public bool CanDuoi_BaoGom { get; set; } = true;
         /// <summary>true = ≤ (bao gồm đầu mút trên), false = &lt; . Default: false</summary>
         public bool CanTren_BaoGom { get; set; } = false;
+        /// <summary>Biểu thức NCalc (ưu tiên hơn CanDuoi/CanTren khi có giá trị).</summary>
+        public string? BieuThuc_Logic { get; set; }
     }
 
     public class UpdateNguongDto
@@ -34,5 +38,7 @@ namespace PM_QLTBHTD.Application.DTOs
         public bool CanDuoi_BaoGom { get; set; } = true;
         /// <summary>true = ≤ (bao gồm đầu mút trên), false = &lt; . Default: false</summary>
         public bool CanTren_BaoGom { get; set; } = false;
+        /// <summary>Biểu thức NCalc (ưu tiên hơn CanDuoi/CanTren khi có giá trị).</summary>
+        public string? BieuThuc_Logic { get; set; }
     }
 }

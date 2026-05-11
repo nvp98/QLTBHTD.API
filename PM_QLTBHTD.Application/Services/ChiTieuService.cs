@@ -33,7 +33,8 @@ namespace PM_QLTBHTD.Application.Services
                        ID_LoaiThietBi = n != null ? n.ID_LoaiThietBi : 0,
                        TenChiTieu     = c.TenChiTieu,
                        TrongSo_Wi     = c.TrongSo_Wi,
-                       TrangThai      = c.TrangThai
+                       TrangThai      = c.TrangThai,
+                       LoaiTinhDiem   = c.LoaiTinhDiem,
                    };
         }
 
@@ -71,9 +72,10 @@ namespace PM_QLTBHTD.Application.Services
             var entity = new CBM_ChiTieu
             {
                 ID_NhomChiTieu = dto.ID_NhomChiTieu,
-                TenChiTieu = dto.TenChiTieu,
-                TrongSo_Wi = dto.TrongSo_Wi,
-                TrangThai = dto.TrangThai
+                TenChiTieu     = dto.TenChiTieu,
+                TrongSo_Wi     = dto.TrongSo_Wi,
+                TrangThai      = dto.TrangThai,
+                LoaiTinhDiem   = dto.LoaiTinhDiem,
             };
             await _repository.AddAsync(entity);
             await _repository.SaveChangesAsync();
@@ -86,9 +88,10 @@ namespace PM_QLTBHTD.Application.Services
             if (entity == null) return null;
 
             entity.ID_NhomChiTieu = dto.ID_NhomChiTieu;
-            entity.TenChiTieu = dto.TenChiTieu;
-            entity.TrongSo_Wi = dto.TrongSo_Wi;
-            entity.TrangThai = dto.TrangThai;
+            entity.TenChiTieu     = dto.TenChiTieu;
+            entity.TrongSo_Wi     = dto.TrongSo_Wi;
+            entity.TrangThai      = dto.TrangThai;
+            entity.LoaiTinhDiem   = dto.LoaiTinhDiem;
             _repository.Update(entity);
             await _repository.SaveChangesAsync();
             return await GetByIdAsync(id);

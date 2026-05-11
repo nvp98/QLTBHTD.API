@@ -17,5 +17,7 @@ namespace PM_QLTBHTD.Domain.Entities
         /// <summary>true = bao gồm đầu mút trên (≤), false = không bao gồm (&lt;). Default: false</summary>
         public bool CanTren_BaoGom { get; set; } = false;
 
+        /// <summary>Biểu thức logic NCalc (tham chiếu biến bằng tên key). Ưu tiên hơn kiểm tra range khi khác null/rỗng.</summary>
+        public string? BieuThuc_Logic { get; set; }
     }
 }

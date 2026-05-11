@@ -20,6 +20,9 @@ namespace PM_QLTBHTD.Infrastructure.Persistence
         public DbSet<CBM_KhuVuc> CBM_KhuVuc { get; set; }
         public DbSet<PhieuKiemTra> PhieuKiemTra { get; set; }
         public DbSet<ChiTietKiemTra> ChiTietKiemTra { get; set; }
+        public DbSet<ChiTietKiemTra_Input> ChiTietKiemTra_Input { get; set; }
+        public DbSet<CBM_ChiTieu_Input> CBM_ChiTieu_Input { get; set; }
+        public DbSet<CBM_ChiTieu_Rule> CBM_ChiTieu_Rule { get; set; }
 
         // IAppDbContext — expose IQueryable cho LINQ join trong services
         IQueryable<CBM_KhuVuc> IAppDbContext.KhuVucs => CBM_KhuVuc.AsQueryable();
@@ -31,5 +34,8 @@ namespace PM_QLTBHTD.Infrastructure.Persistence
         IQueryable<CBM_Nguong> IAppDbContext.Nguongs => CBM_Nguong.AsQueryable();
         IQueryable<PhieuKiemTra> IAppDbContext.PhieuKiemTras => PhieuKiemTra.AsQueryable();
         IQueryable<ChiTietKiemTra> IAppDbContext.ChiTietKiemTras => ChiTietKiemTra.AsQueryable();
+        IQueryable<ChiTietKiemTra_Input> IAppDbContext.ChiTietKiemTra_Inputs => ChiTietKiemTra_Input.AsQueryable();
+        IQueryable<CBM_ChiTieu_Input> IAppDbContext.ChiTieuInputs => CBM_ChiTieu_Input.AsQueryable();
+        IQueryable<CBM_ChiTieu_Rule> IAppDbContext.ChiTieuRules => CBM_ChiTieu_Rule.AsQueryable();
     }
 }

@@ -16,5 +16,8 @@ namespace PM_QLTBHTD.Application.Interfaces
         IQueryable<CBM_Nguong> Nguongs { get; }
         IQueryable<PhieuKiemTra> PhieuKiemTras { get; }
         IQueryable<ChiTietKiemTra> ChiTietKiemTras { get; }
+        IQueryable<ChiTietKiemTra_Input> ChiTietKiemTra_Inputs { get; }
+        IQueryable<CBM_ChiTieu_Input> ChiTieuInputs { get; }
+        IQueryable<CBM_ChiTieu_Rule> ChiTieuRules { get; }
     }
 }

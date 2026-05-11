@@ -30,7 +30,8 @@ namespace PM_QLTBHTD.Application.Services
                        CanDuoi        = ng.CanDuoi,
                        Diem_Si        = ng.Diem_Si,
                        CanDuoi_BaoGom = ng.CanDuoi_BaoGom,
-                       CanTren_BaoGom = ng.CanTren_BaoGom
+                       CanTren_BaoGom = ng.CanTren_BaoGom,
+                       BieuThuc_Logic = ng.BieuThuc_Logic,
                    };
         }
 
@@ -55,12 +56,13 @@ namespace PM_QLTBHTD.Application.Services
         {
             var entity = new CBM_Nguong
             {
-                ID_ChiTieu = dto.ID_ChiTieu,
-                CanTren = dto.CanTren,
-                CanDuoi = dto.CanDuoi,
-                Diem_Si = dto.Diem_Si,
+                ID_ChiTieu     = dto.ID_ChiTieu,
+                CanTren        = dto.CanTren,
+                CanDuoi        = dto.CanDuoi,
+                Diem_Si        = dto.Diem_Si,
                 CanDuoi_BaoGom = dto.CanDuoi_BaoGom,
-                CanTren_BaoGom =dto.CanTren_BaoGom
+                CanTren_BaoGom = dto.CanTren_BaoGom,
+                BieuThuc_Logic = dto.BieuThuc_Logic,
             };
             await _repository.AddAsync(entity);
             await _repository.SaveChangesAsync();
@@ -72,12 +74,13 @@ namespace PM_QLTBHTD.Application.Services
             var entity = await _repository.GetByIdAsync(id);
             if (entity == null) return null;
 
-            entity.ID_ChiTieu = dto.ID_ChiTieu;
-            entity.CanTren = dto.CanTren;
-            entity.CanDuoi = dto.CanDuoi;
-            entity.Diem_Si = dto.Diem_Si;
+            entity.ID_ChiTieu     = dto.ID_ChiTieu;
+            entity.CanTren        = dto.CanTren;
+            entity.CanDuoi        = dto.CanDuoi;
+            entity.Diem_Si        = dto.Diem_Si;
             entity.CanDuoi_BaoGom = dto.CanDuoi_BaoGom;
             entity.CanTren_BaoGom = dto.CanTren_BaoGom;
+            entity.BieuThuc_Logic = dto.BieuThuc_Logic;
 
             _repository.Update(entity);
             await _repository.SaveChangesAsync();
