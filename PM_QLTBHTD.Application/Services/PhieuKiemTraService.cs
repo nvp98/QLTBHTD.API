@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using PM_QLTBHTD.Application.DTOs;
+using PM_QLTBHTD.Application.Helpers;
 using PM_QLTBHTD.Application.Interfaces;
 using PM_QLTBHTD.Domain.Entities;
 using PM_QLTBHTD.Domain.IRepository;
@@ -10,17 +11,20 @@ namespace PM_QLTBHTD.Application.Services
     {
         private readonly IPhieuKiemTraRepository _phieuRepo;
         private readonly IChiTietKiemTraRepository _chiTietRepo;
+        private readonly IChiTietKiemTraInputRepository _chiTietInputRepo;
         private readonly INguongRepository _nguongRepo;
         private readonly IAppDbContext _db;
 
         public PhieuKiemTraService(
             IPhieuKiemTraRepository phieuRepo,
             IChiTietKiemTraRepository chiTietRepo,
+            IChiTietKiemTraInputRepository chiTietInputRepo,
             INguongRepository nguongRepo,
             IAppDbContext db)
         {
             _phieuRepo = phieuRepo;
             _chiTietRepo = chiTietRepo;
+            _chiTietInputRepo = chiTietInputRepo;
             _nguongRepo = nguongRepo;
             _db = db;
         }
@@ -83,7 +87,7 @@ namespace PM_QLTBHTD.Application.Services
                                       ID_ChiTiet = ct.ID_ChiTiet,
                                       IDPhieu = ct.IDPhieu,
                                       ID_ChiTieu = ct.ID_ChiTieu,
-                                      TenChiTieu = c.TenChiTieu,
+                                      TenChiTieu = c.TenChiTieu ?? string.Empty,
                                       GiaTriNhap_So = ct.GiaTriNhap_So,
                                       GiaTriNhap_Chu = ct.GiaTriNhap_Chu,
                                       Diem_Si_DatDuoc = ct.Diem_Si_DatDuoc,
@@ -118,19 +122,126 @@ namespace PM_QLTBHTD.Application.Services
             await _phieuRepo.AddAsync(phieu);
             await _phieuRepo.SaveChangesAsync();
 
+            // Tải LoaiTinhDiem cho các chỉ tiêu trong phiếu
+            var allCtIds = dto.ChiTiets.Select(x => x.ID_ChiTieu).ToList();
+            var chiTieuMetas = await _db.ChiTieus
+                .Where(c => allCtIds.Contains(c.ID_ChiTieu))
+                .Select(c => new { c.ID_ChiTieu, c.LoaiTinhDiem })
+                .ToListAsync();
+
+            // Index input definitions theo ID_ChiTieu để tránh N+1 cho Rule criteria
+            var ruleCtIds = chiTieuMetas
+                .Where(m => m.LoaiTinhDiem == "Rule")
+                .Select(m => m.ID_ChiTieu)
+                .ToList();
+
+            Dictionary<int, List<CBM_ChiTieu_Input>> inputDefsMap = new();
+            Dictionary<int, List<CBM_ChiTieu_Rule>> rulesMap = new();
+            if (ruleCtIds.Count > 0 && dto.ChiTietInputs.Count > 0)
+            {
+                var allInputDefs = await _db.ChiTieuInputs
+                    .Where(i => ruleCtIds.Contains(i.ID_ChiTieu))
+                    .ToListAsync();
+                inputDefsMap = allInputDefs.GroupBy(i => i.ID_ChiTieu)
+                    .ToDictionary(g => g.Key, g => g.ToList());
+
+                var allRules = await _db.ChiTieuRules
+                    .Where(r => ruleCtIds.Contains(r.ID_ChiTieu))
+                    .ToListAsync();
+                rulesMap = allRules.GroupBy(r => r.ID_ChiTieu)
+                    .ToDictionary(g => g.Key, g => g.ToList());
+            }
+
             // Lưu chi tiết và thu thập (idChiTieu, diemDat) để tính CSSK
             var ketQuaChiTiets = new List<(int IdChiTieu, decimal? DiemDat)>();
             foreach (var ct in dto.ChiTiets)
             {
-                var diemDat = await TinhDiemAsync(ct.ID_ChiTieu, ct.GiaTriNhap_So);
+                var loaiTinhDiem = chiTieuMetas.FirstOrDefault(m => m.ID_ChiTieu == ct.ID_ChiTieu)?.LoaiTinhDiem;
+                decimal? diemDat = null;
+
+                if (loaiTinhDiem == "Rule"
+                    && inputDefsMap.TryGetValue(ct.ID_ChiTieu, out var inputDefs)
+                    && inputDefs.Count > 0)
+                {
+                    // Xây biến dict từ giá trị đã nộp (Rule type — có ID_Input từ DB)
+                    var vars = new Dictionary<string, decimal>();
+                    foreach (var def in inputDefs)
+                    {
+                        var submitted = dto.ChiTietInputs.FirstOrDefault(v => v.ID_Input == def.ID_Input);
+                        if (submitted != null)
+                        {
+                            vars[def.MaInput] = submitted.GiaTriSo;
+                            await _chiTietInputRepo.AddAsync(new ChiTietKiemTra_Input
+                            {
+                                IDPhieu    = phieu.ID_Phieu,
+                                ID_ChiTieu = ct.ID_ChiTieu,
+                                ID_Input   = def.ID_Input,
+                                MaInput    = def.MaInput,
+                                GiaTriSo   = submitted.GiaTriSo
+                            });
+                        }
+                    }
+
+                    // Đánh giá từng rule theo thứ tự Diem_Si giảm dần
+                    if (vars.Count > 0 && rulesMap.TryGetValue(ct.ID_ChiTieu, out var rules))
+                    {
+                        foreach (var rule in rules.OrderByDescending(r => r.Diem_Si))
+                        {
+                            if (NguongEvaluator.EvalNCalc(rule.BieuThuc, vars))
+                            {
+                                diemDat = rule.Diem_Si;
+                                break;
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    // Nguong với nhiều biến: frontend gửi theo tên (ChiTietInputsNamed)
+                    // khi threshold dùng BieuThuc_Logic chứa nhiều ẩn số
+                    var namedInputs = dto.ChiTietInputsNamed
+                        .Where(x => x.ID_ChiTieu == ct.ID_ChiTieu)
+                        .ToList();
+
+                    if (namedInputs.Count > 0)
+                    {
+                        var vars = namedInputs.ToDictionary(x => x.MaInput, x => x.GiaTriSo);
+                        var nguongs = await _nguongRepo.GetByChiTieuAsync(ct.ID_ChiTieu);
+                        foreach (var ng in nguongs.OrderByDescending(n => n.Diem_Si))
+                        {
+                            bool matches = !string.IsNullOrWhiteSpace(ng.BieuThuc_Logic)
+                                ? NguongEvaluator.EvalNCalc(ng.BieuThuc_Logic, vars)
+                                : NguongEvaluator.KiemTraRange(
+                                    vars.Count == 1 ? vars.Values.First() : null, ng);
+                            if (matches) { diemDat = ng.Diem_Si; break; }
+                        }
+
+                        // Lưu từng biến đầu vào synthetic vào ChiTietKiemTra_Input
+                        foreach (var ni in namedInputs)
+                        {
+                            await _chiTietInputRepo.AddAsync(new ChiTietKiemTra_Input
+                            {
+                                IDPhieu    = phieu.ID_Phieu,
+                                ID_ChiTieu = ct.ID_ChiTieu,
+                                MaInput    = ni.MaInput,
+                                GiaTriSo   = ni.GiaTriSo
+                            });
+                        }
+                    }
+                    else
+                    {
+                        diemDat = await TinhDiemAsync(ct.ID_ChiTieu, ct.GiaTriNhap_So);
+                    }
+                }
+
                 var chiTiet = new ChiTietKiemTra
                 {
-                    IDPhieu        = phieu.ID_Phieu,
-                    ID_ChiTieu     = ct.ID_ChiTieu,
-                    GiaTriNhap_So  = ct.GiaTriNhap_So,
-                    GiaTriNhap_Chu = ct.GiaTriNhap_Chu,
+                    IDPhieu         = phieu.ID_Phieu,
+                    ID_ChiTieu      = ct.ID_ChiTieu,
+                    GiaTriNhap_So   = ct.GiaTriNhap_So,
+                    GiaTriNhap_Chu  = ct.GiaTriNhap_Chu,
                     Diem_Si_DatDuoc = diemDat,
-                    GhiChu         = ct.GhiChu
+                    GhiChu          = ct.GhiChu
                 };
                 await _chiTietRepo.AddAsync(chiTiet);
                 ketQuaChiTiets.Add((ct.ID_ChiTieu, diemDat));
@@ -168,6 +279,7 @@ namespace PM_QLTBHTD.Application.Services
             if (entity == null) return false;
 
             await _chiTietRepo.DeleteByPhieuAsync(id);
+            await _chiTietInputRepo.DeleteByPhieuAsync(id);
             _phieuRepo.Delete(entity);
             await _phieuRepo.SaveChangesAsync();
             return true;
@@ -225,80 +337,11 @@ namespace PM_QLTBHTD.Application.Services
         {
             if (giaTriSo == null) return null;
             var nguongs = await _nguongRepo.GetByChiTieuAsync(idChiTieu);
-            return nguongs.FirstOrDefault(ng => KiemTraNguong(giaTriSo.Value, ng))?.Diem_Si;
+            return nguongs
+                .OrderByDescending(ng => ng.Diem_Si)
+                .FirstOrDefault(ng => NguongEvaluator.KiemTraNguongVoiGiaTri(giaTriSo, ng))
+                ?.Diem_Si;
         }
 
-        /// <summary>
-        /// Kiểm tra giá trị có nằm trong ngưỡng không.
-        /// CanDuoi_BaoGom: true = ≥  (giaTri >= CanDuoi), false = >  (giaTri > CanDuoi)
-        /// CanTren_BaoGom: true = ≤  (giaTri <= CanTren), false = &lt;  (giaTri &lt; CanTren)
-        /// NULL ở một đầu = không giới hạn phía đó.
-        /// </summary>
-        private static bool KiemTraNguong(decimal giaTri, CBM_Nguong ng)
-        {
-            bool thoaCanDuoi = ng.CanDuoi == null
-                || (ng.CanDuoi_BaoGom ? giaTri >= ng.CanDuoi.Value : giaTri > ng.CanDuoi.Value);
-
-            bool thoaCanTren = ng.CanTren == null
-                || (ng.CanTren_BaoGom ? giaTri <= ng.CanTren.Value : giaTri < ng.CanTren.Value);
-
-            return thoaCanDuoi && thoaCanTren;
-        }
-
-        // /// <summary>
-        // /// Tính CSSK (Chỉ số Sức khỏe) theo công thức có trọng số, kết quả 0–100.
-        // /// Bước 1: Với mỗi NhomChiTieu → điểm nhóm = Σ(Diem_Si × W_i) / Σ(W_i)  [thang 0-10]
-        // /// Bước 2: CSSK = (Σ điểm nhóm / số nhóm) × 10                             [thang 0-100]
-        // /// </summary>
-        // private async Task<decimal> TinhCSSKAsync(List<(int IdChiTieu, decimal? DiemDat)> ketQuas)
-        // {
-        //     var coGiaTri = ketQuas.Where(x => x.DiemDat.HasValue).ToList();
-        //     if (coGiaTri.Count == 0) return 0;
-
-        //     var ids = coGiaTri.Select(x => x.IdChiTieu).ToList();
-
-        //     // Lấy TrongSo_Wi và ID_NhomChiTieu cho từng chỉ tiêu
-        //     var chiTieuMeta = await _db.ChiTieus
-        //         .Where(c => ids.Contains(c.ID_ChiTieu))
-        //         .Select(c => new { c.ID_ChiTieu, c.ID_NhomChiTieu, c.TrongSo_Wi })
-        //         .ToListAsync();
-
-        //     // Nhóm theo NhomChiTieu, tính điểm trung bình có trọng số từng nhóm
-        //     var nhomGroups = chiTieuMeta.GroupBy(c => c.ID_NhomChiTieu);
-        //     decimal tongDiemNhom = 0;
-        //     int soNhom = 0;
-
-        //     foreach (var nhom in nhomGroups)
-        //     {
-        //         decimal weightedSum = 0, weightSum = 0;
-        //         foreach (var ct in nhom)
-        //         {
-        //             var item = coGiaTri.FirstOrDefault(x => x.IdChiTieu == ct.ID_ChiTieu);
-        //             if (item.DiemDat.HasValue && ct.TrongSo_Wi.HasValue && ct.TrongSo_Wi.Value > 0)
-        //             {
-        //                 weightedSum += item.DiemDat.Value * ct.TrongSo_Wi.Value;
-        //                 weightSum   += ct.TrongSo_Wi.Value;
-        //             }
-        //         }
-        //         if (weightSum > 0)
-        //         {
-        //             tongDiemNhom += weightedSum / weightSum; // điểm nhóm: 0-10
-        //             soNhom++;
-        //         }
-        //     }
-
-        //     if (soNhom == 0) return 0;
-        //     // Chuyển sang thang 0-100, làm tròn 1 chữ số thập phân
-        //     return Math.Round(tongDiemNhom / soNhom * 10, 1);
-        // }
-
-        // private static string XepLoaiCapDo(decimal tongDiem) => tongDiem switch
-        // {
-        //     >= 85 => "A - Tốt",
-        //     >= 70 => "B - Khá",
-        //     >= 50 => "C - Trung bình",
-        //     >= 30 => "D - Kém",
-        //     _ => "E - Nguy hiểm"
-        // };
     }
 }

@@ -18,7 +18,7 @@ namespace PM_QLTBHTD.Application.Helpers
                 var expr = new Expression(bieuThuc);
                 expr.EvaluateParameter += (string name, ParameterArgs args) =>
                 {
-                    args.Result = vars.TryGetValue(name, out var val) ? (object)val : (object)0m;
+                    args.Result = vars.TryGetValue(name, out var val) ? (object)(double)val : (object)0d;
                 };
                 return (bool)expr.Evaluate();
             }
@@ -53,6 +53,27 @@ namespace PM_QLTBHTD.Application.Helpers
             }
 
             return true;
+        }
+
+        /// <summary>
+        /// Kiểm tra giá trị đo đơn có khớp ngưỡng không.
+        /// Nếu ngưỡng có BieuThuc_Logic, đánh giá NCalc với biến "val" = giá trị đo.
+        /// Nếu không, dùng so sánh range CanDuoi/CanTren thông thường.
+        /// Quy ước: biểu thức phải dùng tên biến "val" để tham chiếu giá trị đo.
+        /// Ví dụ: "val >= 0.9 * 220 && val <= 1.1 * 220"
+        /// </summary>
+        internal static bool KiemTraNguongVoiGiaTri(decimal? giaTri, CBM_Nguong ng)
+        {
+            if (giaTri is null)
+                return false;
+
+            if (!string.IsNullOrWhiteSpace(ng.BieuThuc_Logic))
+            {
+                var vars = new Dictionary<string, decimal> { ["val"] = giaTri.Value };
+                return EvalNCalc(ng.BieuThuc_Logic, vars);
+            }
+
+            return KiemTraRange(giaTri, ng);
         }
     }
 }

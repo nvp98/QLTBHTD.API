@@ -22,6 +22,9 @@ builder.Services.AddScoped<IChiTieuRepository, ChiTieuRepository>();
 builder.Services.AddScoped<INguongRepository, NguongRepository>();
 builder.Services.AddScoped<IPhieuKiemTraRepository, PhieuKiemTraRepository>();
 builder.Services.AddScoped<IChiTietKiemTraRepository, ChiTietKiemTraRepository>();
+builder.Services.AddScoped<IChiTieuInputRepository, ChiTieuInputRepository>();
+builder.Services.AddScoped<IChiTieuRuleRepository, ChiTieuRuleRepository>();
+builder.Services.AddScoped<IChiTietKiemTraInputRepository, ChiTietKiemTraInputRepository>();
 
 // Services
 builder.Services.AddScoped<IKhuVucService, KhuVucService>();
@@ -31,8 +34,11 @@ builder.Services.AddScoped<IThietBiService, ThietBiService>();
 builder.Services.AddScoped<INhomChiTieuService, NhomChiTieuService>();
 builder.Services.AddScoped<IChiTieuService, ChiTieuService>();
 builder.Services.AddScoped<INguongService, NguongService>();
+builder.Services.AddScoped<INguongScoringService, NguongScoringService>();
 builder.Services.AddScoped<IPhieuKiemTraService, PhieuKiemTraService>();
 builder.Services.AddScoped<IChiTietKiemTraService, ChiTietKiemTraService>();
+builder.Services.AddScoped<IChiTieuInputService, ChiTieuInputService>();
+builder.Services.AddScoped<IChiTieuRuleService, ChiTieuRuleService>();
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
