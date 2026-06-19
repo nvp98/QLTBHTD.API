@@ -39,6 +39,7 @@ builder.Services.AddScoped<IPhieuKiemTraService, PhieuKiemTraService>();
 builder.Services.AddScoped<IChiTietKiemTraService, ChiTietKiemTraService>();
 builder.Services.AddScoped<IChiTieuInputService, ChiTieuInputService>();
 builder.Services.AddScoped<IChiTieuRuleService, ChiTieuRuleService>();
+builder.Services.AddScoped<IThongKeService, ThongKeService>();
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
