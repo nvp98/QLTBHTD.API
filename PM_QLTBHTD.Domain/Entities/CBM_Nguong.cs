@@ -19,5 +19,8 @@ namespace PM_QLTBHTD.Domain.Entities
 
         /// <summary>Biểu thức logic NCalc (tham chiếu biến bằng tên key). Ưu tiên hơn kiểm tra range khi khác null/rỗng.</summary>
         public string? BieuThuc_Logic { get; set; }
+
+        /// <summary>Thứ tự ưu tiên khi nhiều dòng Nguong cùng một ChiTieu (số nhỏ = kiểm tra trước).</summary>
+        public int ThuTu { get; set; } = 0;
     }
 }

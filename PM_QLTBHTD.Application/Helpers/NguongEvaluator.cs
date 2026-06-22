@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using NCalc;
 using PM_QLTBHTD.Domain.Entities;
 
@@ -16,9 +14,9 @@ namespace PM_QLTBHTD.Application.Helpers
             try
             {
                 var expr = new Expression(bieuThuc);
-                expr.EvaluateParameter += (string name, ParameterArgs args) =>
+                expr.EvaluateParameter += (name, args) =>
                 {
-                    args.Result = vars.TryGetValue(name, out var val) ? (object)(double)val : (object)0d;
+                    args.Result = vars.TryGetValue(name, out var val) ? (double)val : 0d;
                 };
                 return (bool)expr.Evaluate();
             }
@@ -60,7 +58,6 @@ namespace PM_QLTBHTD.Application.Helpers
         /// Nếu ngưỡng có BieuThuc_Logic, đánh giá NCalc với biến "val" = giá trị đo.
         /// Nếu không, dùng so sánh range CanDuoi/CanTren thông thường.
         /// Quy ước: biểu thức phải dùng tên biến "val" để tham chiếu giá trị đo.
-        /// Ví dụ: "val >= 0.9 * 220 && val <= 1.1 * 220"
         /// </summary>
         internal static bool KiemTraNguongVoiGiaTri(decimal? giaTri, CBM_Nguong ng)
         {
@@ -74,6 +71,22 @@ namespace PM_QLTBHTD.Application.Helpers
             }
 
             return KiemTraRange(giaTri, ng);
+        }
+
+        /// <summary>
+        /// Kiểm tra ngưỡng khi chỉ tiêu có nhiều biến đầu vào.
+        /// BẮTBUỘC phải có BieuThuc_Logic trong ngưỡng — ném InvalidOperationException nếu rỗng.
+        /// Key trong vars phải khớp chính xác tên biến trong BieuThuc_Logic.
+        /// KHÔNG fallback sang KiemTraRange để lỗi cấu hình lộ ra ngay.
+        /// </summary>
+        internal static bool KiemTraNguongVoiGiaTri(Dictionary<string, decimal> vars, CBM_Nguong ng)
+        {
+            if (string.IsNullOrWhiteSpace(ng.BieuThuc_Logic))
+                throw new InvalidOperationException(
+                    $"Ngưỡng ID={ng.ID_Nguong} (ChiTieu={ng.ID_ChiTieu}) không có BieuThuc_Logic " +
+                    "nhưng chỉ tiêu này yêu cầu nhiều biến đầu vào. Vui lòng cấu hình BieuThuc_Logic.");
+
+            return EvalNCalc(ng.BieuThuc_Logic, vars);
         }
     }
 }

@@ -5,7 +5,7 @@ using PM_QLTBHTD.Application.Services;
 namespace PM_QLTBHTD.API.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/nhom-chi-tieu")]
     public class NhomChiTieuController : ControllerBase
     {
         private readonly INhomChiTieuService _service;
@@ -26,6 +26,10 @@ namespace PM_QLTBHTD.API.Controllers
         [HttpGet("by-loaithietbi/{idLoaiThietBi}")]
         public async Task<IActionResult> GetByLoaiThietBi(int idLoaiThietBi)
             => Ok(await _service.GetByLoaiThietBiAsync(idLoaiThietBi));
+
+        [HttpGet("cay/{idLoaiThietBi}")]
+        public async Task<IActionResult> GetCay(int idLoaiThietBi)
+            => Ok(await _service.GetCayAsync(idLoaiThietBi));
 
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)

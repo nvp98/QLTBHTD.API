@@ -1,18 +1,26 @@
 using Microsoft.AspNetCore.Mvc;
 using PM_QLTBHTD.Application.DTOs;
+using PM_QLTBHTD.Application.Exceptions;
 using PM_QLTBHTD.Application.Services;
 
 namespace PM_QLTBHTD.API.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/chi-tiet-kiem-tra")]
     public class ChiTietKiemTraController : ControllerBase
     {
         private readonly IChiTietKiemTraService _service;
+        private readonly IChiTieuScoringService _scoringService;
+        private readonly IScoringEngine _engine;
 
-        public ChiTietKiemTraController(IChiTietKiemTraService service)
+        public ChiTietKiemTraController(
+            IChiTietKiemTraService service,
+            IChiTieuScoringService scoringService,
+            IScoringEngine engine)
         {
             _service = service;
+            _scoringService = scoringService;
+            _engine = engine;
         }
 
         [HttpGet("by-phieu/{idPhieu}")]
@@ -26,11 +34,52 @@ namespace PM_QLTBHTD.API.Controllers
             return item == null ? NotFound() : Ok(item);
         }
 
+        /// <summary>
+        /// Nhận batch nhập liệu, tính Si cho từng chỉ tiêu, và tuỳ chọn tính điểm nhóm ngay.
+        /// Body: NhapPhieuKiemTraRequest (danh sách chỉ tiêu + tuỳ chọn tự động tính điểm).
+        /// </summary>
         [HttpPost("phieu/{idPhieu}")]
-        public async Task<IActionResult> Create(int idPhieu, [FromBody] CreateChiTietKiemTraDto dto)
+        public async Task<IActionResult> NhapLieu(
+            int idPhieu,
+            [FromBody] NhapPhieuKiemTraRequest request,
+            CancellationToken ct)
         {
-            var created = await _service.CreateAsync(idPhieu, dto);
-            return CreatedAtAction(nameof(GetById), new { id = created.ID_ChiTiet }, created);
+            try
+            {
+                await _scoringService.TinhVaLuuDiemSiAsync(idPhieu, request.DanhSachChiTieu, ct);
+
+                var ketQuaNhap = await _service.GetByPhieuAsync(idPhieu);
+
+                KetQuaNhomDto? ketQuaTinhDiem = null;
+                if (request.TuDongTinhDiem && request.ID_NhomChiTieuTinhDiem.HasValue)
+                {
+                    var diem = await _engine.TinhDiemNhomAsync(
+                        request.ID_NhomChiTieuTinhDiem.Value, idPhieu, ct);
+                    ketQuaTinhDiem = new KetQuaNhomDto
+                    {
+                        ID_NhomChiTieu = request.ID_NhomChiTieuTinhDiem.Value,
+                        Diem = diem
+                    };
+                }
+
+                return Ok(new NhapPhieuKiemTraResponse
+                {
+                    KetQuaNhap = ketQuaNhap.ToList(),
+                    KetQuaTinhDiem = ketQuaTinhDiem
+                });
+            }
+            catch (ThieuBieuThucNguongException ex)
+            {
+                return UnprocessableEntity(new { Error = ex.Message, ex.IdChiTieu });
+            }
+            catch (ThieuInputChiTieuException ex)
+            {
+                return UnprocessableEntity(new { Error = ex.Message, ex.IdChiTieu, ex.MaInput });
+            }
+            catch (ThieuDuLieuChiTietKiemTraException ex)
+            {
+                return UnprocessableEntity(new { Error = ex.Message, ex.IdChiTieu, ex.IdPhieu });
+            }
         }
 
         [HttpPut("{id}")]

@@ -27,8 +27,12 @@ namespace PM_QLTBHTD.Application.Services
                        TenNhom = n.TenNhom,
                        ID_LoaiThietBi = n.ID_LoaiThietBi,
                        TenLoaiThietBi = l.TenLoaiTB,
+                       ID_NhomCha = n.ID_NhomCha,
+                       CapDo = n.CapDo,
+                       LoaiNhom = n.LoaiNhom,
                        PhienBan = n.PhienBan,
-                       TrangThai = n.TrangThai
+                       TrangThai = n.TrangThai,
+                       CoCongThuc = _db.CongThucTongHops.Any(c => c.ID_NhomChiTieu == n.ID_NhomChiTieu && c.TrangThai == 1)
                    };
         }
 
@@ -59,6 +63,9 @@ namespace PM_QLTBHTD.Application.Services
             {
                 TenNhom = dto.TenNhom,
                 ID_LoaiThietBi = dto.ID_LoaiThietBi,
+                ID_NhomCha = dto.ID_NhomCha,
+                CapDo = dto.CapDo,
+                LoaiNhom = dto.LoaiNhom,
                 PhienBan = dto.PhienBan,
                 TrangThai = dto.TrangThai
             };
@@ -74,6 +81,9 @@ namespace PM_QLTBHTD.Application.Services
 
             entity.TenNhom = dto.TenNhom;
             entity.ID_LoaiThietBi = dto.ID_LoaiThietBi;
+            entity.ID_NhomCha = dto.ID_NhomCha;
+            entity.CapDo = dto.CapDo;
+            entity.LoaiNhom = dto.LoaiNhom;
             entity.PhienBan = dto.PhienBan;
             entity.TrangThai = dto.TrangThai;
             _repository.Update(entity);
@@ -89,6 +99,40 @@ namespace PM_QLTBHTD.Application.Services
             _repository.Delete(entity);
             await _repository.SaveChangesAsync();
             return true;
+        }
+
+        public async Task<IEnumerable<NhomChiTieuCayDto>> GetCayAsync(int idLoaiThietBi)
+        {
+            var tatCa = await JoinQuery()
+                .Where(x => x.ID_LoaiThietBi == idLoaiThietBi && x.TrangThai == 1)
+                .ToListAsync();
+
+            var cayDtos = tatCa.Select(x => new NhomChiTieuCayDto
+            {
+                ID_NhomChiTieu = x.ID_NhomChiTieu,
+                TenNhom = x.TenNhom,
+                ID_LoaiThietBi = x.ID_LoaiThietBi,
+                TenLoaiThietBi = x.TenLoaiThietBi,
+                ID_NhomCha = x.ID_NhomCha,
+                CapDo = x.CapDo,
+                LoaiNhom = x.LoaiNhom,
+                PhienBan = x.PhienBan,
+                TrangThai = x.TrangThai,
+                CoCongThuc = x.CoCongThuc
+            }).ToList();
+
+            var lookup = cayDtos.ToDictionary(x => x.ID_NhomChiTieu);
+            var roots = new List<NhomChiTieuCayDto>();
+
+            foreach (var node in cayDtos)
+            {
+                if (node.ID_NhomCha.HasValue && lookup.TryGetValue(node.ID_NhomCha.Value, out var parent))
+                    parent.NhomCon.Add(node);
+                else
+                    roots.Add(node);
+            }
+
+            return roots;
         }
     }
 }
