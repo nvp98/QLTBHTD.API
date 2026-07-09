@@ -53,6 +53,7 @@ builder.Services.AddScoped<INguongService, NguongService>();
 builder.Services.AddScoped<INguongScoringService, NguongScoringService>();
 builder.Services.AddScoped<IChiTieuInputService, ChiTieuInputService>();
 builder.Services.AddScoped<IChiTieuRuleService, ChiTieuRuleService>();
+builder.Services.AddScoped<IChiTieuPhanLoaiNguongService, ChiTieuPhanLoaiNguongService>();
 
 // Services — công thức tổng hợp
 builder.Services.AddScoped<ICongThucTongHopService, CongThucTongHopService>();

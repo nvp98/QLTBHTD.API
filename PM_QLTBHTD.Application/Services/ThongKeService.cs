@@ -32,11 +32,11 @@ namespace PM_QLTBHTD.Application.Services
             {
                 if (p.TongDiem_Soqt == null) continue;
                 var d = (double)p.TongDiem_Soqt.Value;
-                if      (d >= 85) tot++;
-                else if (d >= 70) binhThuong++;
-                else if (d >= 55) chuY++;
-                else if (d >= 40) canhBao++;
-                else              nguHiem++;
+                if      (d >= 8) tot++;
+                else if (d >= 6) binhThuong++;
+                else if (d >= 4) chuY++;
+                else if (d >= 2) canhBao++;
+                else             nguHiem++;
             }
 
             var chuaKiemTra = tongThietBi - latestPhieus.Count;
@@ -115,11 +115,11 @@ namespace PM_QLTBHTD.Application.Services
                 int tot = 0, binh = 0, chuY = 0, canhBao = 0, nguHiem = 0;
                 foreach (var d in diems)
                 {
-                    if      (d >= 85) tot++;
-                    else if (d >= 70) binh++;
-                    else if (d >= 55) chuY++;
-                    else if (d >= 40) canhBao++;
-                    else              nguHiem++;
+                    if      (d >= 8) tot++;
+                    else if (d >= 6) binh++;
+                    else if (d >= 4) chuY++;
+                    else if (d >= 2) canhBao++;
+                    else             nguHiem++;
                 }
 
                 result.Add(new BaoCaoTramItemDto
@@ -143,13 +143,13 @@ namespace PM_QLTBHTD.Application.Services
 
         public async Task<IEnumerable<CanhBaoThietBiDto>> GetCanhBaoAsync()
         {
-            // Lay tat ca phieu co CSSK < 70
+            // Lay tat ca phieu co CSSK < 6 (thang 0-10)
             var rows = await (
                 from p in _db.PhieuKiemTras
                 join tb   in _db.ThietBis      on p.ID_ThietBi    equals tb.ID_ThietBi
                 join tram in _db.TramDiens     on tb.ID_Tram       equals tram.IDTram
                 join loai in _db.LoaiThietBis  on tb.ID_LoaiTB     equals loai.ID_LoaiThietBi
-                where p.TongDiem_Soqt != null && p.TongDiem_Soqt < 70
+                where p.TongDiem_Soqt != null && p.TongDiem_Soqt < 6
                 select new
                 {
                     p.ID_ThietBi,
@@ -178,8 +178,8 @@ namespace PM_QLTBHTD.Application.Services
                     NgayKiemTra   = r.NgayKiemTra,
                     TongDiem_Soqt = r.TongDiem_Soqt,
                     CapDoCanhBao  = r.CapDoCanhBao
-                        ?? ((double?)r.TongDiem_Soqt >= 55 ? "Chu y"
-                           : (double?)r.TongDiem_Soqt >= 40 ? "Canh bao"
+                        ?? ((double?)r.TongDiem_Soqt >= 4 ? "Chu y"
+                           : (double?)r.TongDiem_Soqt >= 2 ? "Canh bao"
                            : "Nguy hiem"),
                 });
         }

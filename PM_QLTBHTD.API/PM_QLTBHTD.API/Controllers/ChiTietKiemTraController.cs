@@ -80,6 +80,14 @@ namespace PM_QLTBHTD.API.Controllers
             {
                 return UnprocessableEntity(new { Error = ex.Message, ex.IdChiTieu, ex.IdPhieu });
             }
+            catch (ThieuPhanLoaiNguongException ex)
+            {
+                return UnprocessableEntity(new { Error = ex.Message, ex.IdChiTieu });
+            }
+            catch (ThieuDuLieuThangDoException ex)
+            {
+                return UnprocessableEntity(new { Error = ex.Message, ex.IdChiTieu, ex.IdPhieu });
+            }
         }
 
         [HttpPut("{id}")]
