@@ -32,6 +32,14 @@ namespace PM_QLTBHTD.Domain.Entities
         /// <summary>Giá trị cố định khi NguonBien='HANGSO' (ví dụ hệ số 0.6, trọng số 10).</summary>
         public decimal? GiaTriHangSo { get; set; }
 
+        /// <summary>
+        /// Trọng số Wi của biến này — CHỈ dùng khi CBM_CongThucTongHop.LoaiCongThuc là
+        /// 'WEIGHTED_AVG' hoặc 'WEIGHTED_AVG_SCALED' (ScoringEngine tự tính ΣSiWi/ΣWi thay vì
+        /// evaluate BieuThuc, tránh phải tự gõ tay hệ số vào cả tử và mẫu của biểu thức NCalc).
+        /// Không dùng cho CUSTOM_NCALC/LINEAR_COMBINE/PRODUCT — các loại đó vẫn evaluate BieuThuc.
+        /// </summary>
+        public decimal? TrongSo { get; set; }
+
         public string? MoTa { get; set; }
     }
 }

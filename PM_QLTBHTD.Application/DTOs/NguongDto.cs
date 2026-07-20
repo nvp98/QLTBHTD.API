@@ -12,6 +12,8 @@ namespace PM_QLTBHTD.Application.DTOs
         public bool CanTren_BaoGom { get; set; }
         /// <summary>Biểu thức NCalc (ưu tiên hơn CanDuoi/CanTren khi có giá trị).</summary>
         public string? BieuThuc_Logic { get; set; }
+        /// <summary>Khi Chỉ tiêu có CBM_ChiTieu_Formula: MaKetQua của Formula mà ngưỡng này áp dụng. NULL = áp trực tiếp lên GiaTriNhap_So.</summary>
+        public string? MaKetQua { get; set; }
     }
 
     public class CreateNguongDto
@@ -26,6 +28,8 @@ namespace PM_QLTBHTD.Application.DTOs
         public bool CanTren_BaoGom { get; set; } = false;
         /// <summary>Biểu thức NCalc (ưu tiên hơn CanDuoi/CanTren khi có giá trị).</summary>
         public string? BieuThuc_Logic { get; set; }
+        /// <summary>Khi Chỉ tiêu có CBM_ChiTieu_Formula: MaKetQua của Formula mà ngưỡng này áp dụng. NULL = áp trực tiếp lên GiaTriNhap_So.</summary>
+        public string? MaKetQua { get; set; }
     }
 
     public class UpdateNguongDto
@@ -40,5 +44,7 @@ namespace PM_QLTBHTD.Application.DTOs
         public bool CanTren_BaoGom { get; set; } = false;
         /// <summary>Biểu thức NCalc (ưu tiên hơn CanDuoi/CanTren khi có giá trị).</summary>
         public string? BieuThuc_Logic { get; set; }
+        /// <summary>Khi Chỉ tiêu có CBM_ChiTieu_Formula: MaKetQua của Formula mà ngưỡng này áp dụng. NULL = áp trực tiếp lên GiaTriNhap_So.</summary>
+        public string? MaKetQua { get; set; }
     }
 }

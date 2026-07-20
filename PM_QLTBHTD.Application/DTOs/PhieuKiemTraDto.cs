@@ -37,7 +37,8 @@ namespace PM_QLTBHTD.Application.DTOs
         public int ID_ThietBi { get; set; }
         /// <summary>Nhóm chỉ tiêu cần đo. NULL = kiểm tra toàn diện.</summary>
         public int? ID_NhomChiTieu { get; set; }
-        public DateTime NgayKiemTra { get; set; }
+        /// <summary>Ngày kiểm tra. NULL = không chọn, lấy ngày giờ hiện tại lúc lưu phiếu.</summary>
+        public DateTime? NgayKiemTra { get; set; }
         public string? NguoiKiemTra { get; set; }
         public string? GhiChuChung { get; set; }
         public List<CreateChiTietKiemTraDto> ChiTiets { get; set; } = new();

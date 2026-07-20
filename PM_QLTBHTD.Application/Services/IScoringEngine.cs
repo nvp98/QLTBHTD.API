@@ -20,5 +20,13 @@ namespace PM_QLTBHTD.Application.Services
         /// Trả về danh sách kết quả từng nhóm (đã ghi cache).
         /// </summary>
         Task<IReadOnlyList<KetQuaNhomDto>> TinhDiemCayAsync(int idLoaiThietBi, int idPhieu, CancellationToken ct = default);
+
+        /// <summary>
+        /// Tính điểm CSSK đại diện cho cả phiếu và ghi vào PhieuKiemTra.TongDiem_Soqt + CapDoCanhBao.
+        /// Nhóm dùng để tính: ID_NhomChiTieu của phiếu nếu có, ngược lại tự tìm nhóm gốc
+        /// (ID_NhomCha=null) của loại thiết bị — ném NhieuNhomGocException nếu có nhiều hơn 1 nhóm gốc.
+        /// Trả null (không ném lỗi) khi chưa đủ dữ liệu/công thức để tính — coi là "chưa tính được", không phải lỗi.
+        /// </summary>
+        Task<decimal?> TinhVaLuuTongDiemAsync(int idPhieu, CancellationToken ct = default);
     }
 }

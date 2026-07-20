@@ -13,7 +13,7 @@ namespace PM_QLTBHTD.Application.Services
             _repository = repository;
         }
 
-        public async Task<PagedResult<KhuVucDto>> GetPagedAsync(string? search, int page, int pageSize)
+        public async Task<PagedResult<KhuVucDto>> GetPagedAsync(string? search, int page, int? pageSize)
         {
             var (items, total) = await _repository.GetPagedAsync(
                 x => string.IsNullOrEmpty(search) || x.TenKhuVuc.Contains(search),
@@ -24,7 +24,7 @@ namespace PM_QLTBHTD.Application.Services
                 Items = items.Select(MapToDto),
                 Total = total,
                 Page = page,
-                PageSize = pageSize
+                PageSize = pageSize ?? total
             };
         }
 

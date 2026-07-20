@@ -18,6 +18,7 @@ namespace PM_QLTBHTD.Application.Services
             TenMuc     = e.TenMuc,
             Diem_Si    = e.Diem_Si,
             BieuThuc   = e.BieuThuc,
+            LoaiRule   = e.LoaiRule,
         };
 
         public async Task<IEnumerable<ChiTieuRuleDto>> GetByChiTieuAsync(int idChiTieu)
@@ -37,6 +38,7 @@ namespace PM_QLTBHTD.Application.Services
                 TenMuc     = dto.TenMuc,
                 Diem_Si    = dto.Diem_Si,
                 BieuThuc   = dto.BieuThuc,
+                LoaiRule   = dto.LoaiRule,
             };
             await _repository.AddAsync(entity);
             await _repository.SaveChangesAsync();
@@ -52,6 +54,7 @@ namespace PM_QLTBHTD.Application.Services
             entity.TenMuc     = dto.TenMuc;
             entity.Diem_Si    = dto.Diem_Si;
             entity.BieuThuc   = dto.BieuThuc;
+            entity.LoaiRule   = dto.LoaiRule;
 
             _repository.Update(entity);
             await _repository.SaveChangesAsync();

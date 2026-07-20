@@ -35,6 +35,7 @@ namespace PM_QLTBHTD.Application.Services
                        ID_NhomCon = b.ID_NhomCon,
                        TenNhomCon = nh != null ? nh.TenNhom : null,
                        GiaTriHangSo = b.GiaTriHangSo,
+                       TrongSo = b.TrongSo,
                        MoTa = b.MoTa
                    };
         }
@@ -55,6 +56,7 @@ namespace PM_QLTBHTD.Application.Services
                 ID_ChiTieuNguon = dto.ID_ChiTieuNguon,
                 ID_NhomCon = dto.ID_NhomCon,
                 GiaTriHangSo = dto.GiaTriHangSo,
+                TrongSo = dto.TrongSo,
                 MoTa = dto.MoTa
             };
             await _repo.AddAsync(entity);
@@ -72,6 +74,7 @@ namespace PM_QLTBHTD.Application.Services
             entity.ID_ChiTieuNguon = dto.ID_ChiTieuNguon;
             entity.ID_NhomCon = dto.ID_NhomCon;
             entity.GiaTriHangSo = dto.GiaTriHangSo;
+            entity.TrongSo = dto.TrongSo;
             entity.MoTa = dto.MoTa;
             _repo.Update(entity);
             await _repo.SaveChangesAsync();

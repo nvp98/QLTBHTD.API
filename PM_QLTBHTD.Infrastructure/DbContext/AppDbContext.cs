@@ -23,6 +23,8 @@ namespace PM_QLTBHTD.Infrastructure.Persistence
         public DbSet<CBM_Nguong> CBM_Nguong { get; set; }
         public DbSet<CBM_ChiTieu_Input> CBM_ChiTieu_Input { get; set; }
         public DbSet<CBM_ChiTieu_Rule> CBM_ChiTieu_Rule { get; set; }
+        public DbSet<CBM_ChiTieu_Formula> CBM_ChiTieu_Formula { get; set; }
+        public DbSet<CBM_ChiTieu_Formula_ThamSo> CBM_ChiTieu_Formula_ThamSo { get; set; }
 
         // Công thức tổng hợp
         public DbSet<CBM_CongThucTongHop> CBM_CongThucTongHop { get; set; }
@@ -67,6 +69,8 @@ namespace PM_QLTBHTD.Infrastructure.Persistence
         IQueryable<CBM_Nguong> IAppDbContext.Nguongs => CBM_Nguong.AsQueryable();
         IQueryable<CBM_ChiTieu_Input> IAppDbContext.ChiTieuInputs => CBM_ChiTieu_Input.AsQueryable();
         IQueryable<CBM_ChiTieu_Rule> IAppDbContext.ChiTieuRules => CBM_ChiTieu_Rule.AsQueryable();
+        IQueryable<CBM_ChiTieu_Formula> IAppDbContext.ChiTieuFormulas => CBM_ChiTieu_Formula.AsQueryable();
+        IQueryable<CBM_ChiTieu_Formula_ThamSo> IAppDbContext.ChiTieuFormulaThamSos => CBM_ChiTieu_Formula_ThamSo.AsQueryable();
         IQueryable<CBM_CongThucTongHop> IAppDbContext.CongThucTongHops => CBM_CongThucTongHop.AsQueryable();
         IQueryable<CBM_CongThuc_Bien> IAppDbContext.CongThucBiens => CBM_CongThuc_Bien.AsQueryable();
         IQueryable<CBM_KetQuaNhom> IAppDbContext.KetQuaNhoms => CBM_KetQuaNhom.AsQueryable();

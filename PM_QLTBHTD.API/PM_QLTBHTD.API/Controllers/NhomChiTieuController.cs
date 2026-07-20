@@ -16,7 +16,7 @@ namespace PM_QLTBHTD.API.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAll([FromQuery] string? search, int? id_LoaiTB, int? tramDien, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+        public async Task<IActionResult> GetAll([FromQuery] string? search, int? id_LoaiTB, int? tramDien, [FromQuery] int page = 1, [FromQuery] int? pageSize = null)
             => Ok(await _service.GetPagedAsync(search, page, pageSize));
 
         [HttpGet("active")]

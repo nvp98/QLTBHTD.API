@@ -18,9 +18,6 @@ namespace PM_QLTBHTD.Application.DTOs
         /// </summary>
         public Dictionary<string, decimal>? DanhSachInput { get; set; }
 
-        /// <summary>Danh sách giá trị đo theo tháng — dùng khi chỉ tiêu có LoaiTinhDiem='LF' (Load Factor).</summary>
-        public List<ThangDoDto>? DanhSachThang { get; set; }
-
         public string? GhiChu { get; set; }
     }
 
@@ -42,5 +39,11 @@ namespace PM_QLTBHTD.Application.DTOs
     {
         public List<ChiTietKiemTraDto> KetQuaNhap { get; set; } = [];
         public KetQuaNhomDto? KetQuaTinhDiem { get; set; }
+
+        /// <summary>CSSK tổng của phiếu vừa tính lại (null nếu cây chưa đủ dữ liệu/công thức để tính).</summary>
+        public decimal? TongDiem_Soqt { get; set; }
+
+        /// <summary>Cảnh báo cấu hình khi không thể tự xác định nhóm gốc (VD nhiều hơn 1 nhóm gốc).</summary>
+        public string? CanhBaoTongDiem { get; set; }
     }
 }

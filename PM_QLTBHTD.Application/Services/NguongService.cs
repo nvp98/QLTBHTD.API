@@ -32,18 +32,21 @@ namespace PM_QLTBHTD.Application.Services
                        CanDuoi_BaoGom = ng.CanDuoi_BaoGom,
                        CanTren_BaoGom = ng.CanTren_BaoGom,
                        BieuThuc_Logic = ng.BieuThuc_Logic,
+                       MaKetQua       = ng.MaKetQua,
                    };
         }
 
-        public async Task<PagedResult<NguongDto>> GetPagedAsync(string? search, int page, int pageSize)
+        public async Task<PagedResult<NguongDto>> GetPagedAsync(string? search, int page, int? pageSize)
         {
             var query = JoinQuery().Where(x =>
                 string.IsNullOrEmpty(search)
                 || x.TenChiTieu.Contains(search));
 
             var total = await query.CountAsync();
-            var items = await query.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
-            return new PagedResult<NguongDto> { Items = items, Total = total, Page = page, PageSize = pageSize };
+            if (pageSize.HasValue)
+                query = query.Skip((page - 1) * pageSize.Value).Take(pageSize.Value);
+            var items = await query.ToListAsync();
+            return new PagedResult<NguongDto> { Items = items, Total = total, Page = page, PageSize = pageSize ?? total };
         }
 
         public async Task<IEnumerable<NguongDto>> GetByChiTieuAsync(int idChiTieu)
@@ -63,6 +66,7 @@ namespace PM_QLTBHTD.Application.Services
                 CanDuoi_BaoGom = dto.CanDuoi_BaoGom,
                 CanTren_BaoGom = dto.CanTren_BaoGom,
                 BieuThuc_Logic = dto.BieuThuc_Logic,
+                MaKetQua       = dto.MaKetQua,
             };
             await _repository.AddAsync(entity);
             await _repository.SaveChangesAsync();
@@ -81,6 +85,7 @@ namespace PM_QLTBHTD.Application.Services
             entity.CanDuoi_BaoGom = dto.CanDuoi_BaoGom;
             entity.CanTren_BaoGom = dto.CanTren_BaoGom;
             entity.BieuThuc_Logic = dto.BieuThuc_Logic;
+            entity.MaKetQua       = dto.MaKetQua;
 
             _repository.Update(entity);
             await _repository.SaveChangesAsync();

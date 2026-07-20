@@ -17,7 +17,7 @@ namespace PM_QLTBHTD.Application.Services
             _db = db;
         }
 
-        public async Task<PagedResult<TramDienDto>> GetPagedAsync(string? search, int page, int pageSize)
+        public async Task<PagedResult<TramDienDto>> GetPagedAsync(string? search, int page, int? pageSize)
         {
             var query = from t in _db.TramDiens
                         join k in _db.KhuVucs on t.IDKhuVuc equals k.ID_KhuVuc
@@ -35,8 +35,10 @@ namespace PM_QLTBHTD.Application.Services
                         };
 
             var total = await query.CountAsync();
-            var items = await query.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
-            return new PagedResult<TramDienDto> { Items = items, Total = total, Page = page, PageSize = pageSize };
+            if (pageSize.HasValue)
+                query = query.Skip((page - 1) * pageSize.Value).Take(pageSize.Value);
+            var items = await query.ToListAsync();
+            return new PagedResult<TramDienDto> { Items = items, Total = total, Page = page, PageSize = pageSize ?? total };
         }
 
         public async Task<IEnumerable<TramDienDto>> GetAllActiveAsync()

@@ -38,7 +38,7 @@ namespace PM_QLTBHTD.Application.Services
                    };
         }
 
-        public async Task<PagedResult<ChiTieuDto>> GetPagedAsync(string? search, int? idNhom, int? idLoai, int page, int pageSize)
+        public async Task<PagedResult<ChiTieuDto>> GetPagedAsync(string? search, int? idNhom, int? idLoai, int page, int? pageSize)
         {
             var query = JoinQuery();
 
@@ -53,9 +53,11 @@ namespace PM_QLTBHTD.Application.Services
                 query = query.Where(x => x.ID_LoaiThietBi == idLoai.Value);
 
             var total = await query.CountAsync();
-            var items = await query.OrderBy(x => x.ID_NhomChiTieu).ThenBy(x => x.ID_ChiTieu)
-                                   .Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
-            return new PagedResult<ChiTieuDto> { Items = items, Total = total, Page = page, PageSize = pageSize };
+            var ordered = query.OrderBy(x => x.ID_NhomChiTieu).ThenBy(x => x.ID_ChiTieu);
+            var items = await (pageSize.HasValue
+                ? ordered.Skip((page - 1) * pageSize.Value).Take(pageSize.Value)
+                : ordered).ToListAsync();
+            return new PagedResult<ChiTieuDto> { Items = items, Total = total, Page = page, PageSize = pageSize ?? total };
         }
 
         public async Task<IEnumerable<ChiTieuDto>> GetAllActiveAsync()

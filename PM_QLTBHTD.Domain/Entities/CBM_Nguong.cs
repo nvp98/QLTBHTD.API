@@ -22,5 +22,12 @@ namespace PM_QLTBHTD.Domain.Entities
 
         /// <summary>Thứ tự ưu tiên khi nhiều dòng Nguong cùng một ChiTieu (số nhỏ = kiểm tra trước).</summary>
         public int ThuTu { get; set; } = 0;
+
+        /// <summary>
+        /// Khi Chỉ tiêu có CBM_ChiTieu_Formula: tên MaKetQua của Formula mà ngưỡng này áp dụng
+        /// (1 Chỉ tiêu có thể có nhiều Formula, mỗi Formula 1 bảng ngưỡng riêng).
+        /// NULL = áp trực tiếp lên GiaTriNhap_So (Chỉ tiêu không có Formula) — tương thích ngược.
+        /// </summary>
+        public string? MaKetQua { get; set; }
     }
 }

@@ -1,0 +1,48 @@
+using Microsoft.AspNetCore.Mvc;
+using PM_QLTBHTD.Application.DTOs;
+using PM_QLTBHTD.Application.Services;
+
+namespace PM_QLTBHTD.API.Controllers
+{
+    [ApiController]
+    [Route("api/chitieu-formula-thamso")]
+    public class ChiTieuFormulaThamSoController : ControllerBase
+    {
+        private readonly IChiTieuFormulaThamSoService _service;
+
+        public ChiTieuFormulaThamSoController(IChiTieuFormulaThamSoService service)
+            => _service = service;
+
+        [HttpGet("by-formula/{idFormula}")]
+        public async Task<IActionResult> GetByFormula(int idFormula)
+            => Ok(await _service.GetByFormulaAsync(idFormula));
+
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetById(int id)
+        {
+            var item = await _service.GetByIdAsync(id);
+            return item == null ? NotFound() : Ok(item);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> Create([FromBody] CreateChiTieuFormulaThamSoDto dto)
+        {
+            var created = await _service.CreateAsync(dto);
+            return CreatedAtAction(nameof(GetById), new { id = created.ID_ThamSo }, created);
+        }
+
+        [HttpPut("{id}")]
+        public async Task<IActionResult> Update(int id, [FromBody] UpdateChiTieuFormulaThamSoDto dto)
+        {
+            var updated = await _service.UpdateAsync(id, dto);
+            return updated == null ? NotFound() : Ok(updated);
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Delete(int id)
+        {
+            var result = await _service.DeleteAsync(id);
+            return result ? NoContent() : NotFound();
+        }
+    }
+}

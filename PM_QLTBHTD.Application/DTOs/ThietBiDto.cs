@@ -13,6 +13,7 @@ namespace PM_QLTBHTD.Application.DTOs
         public int? NamSanXuat { get; set; }
         public int TrangThai { get; set; }
         public string? GhiChu { get; set; }
+        public decimal? TaiDinhMuc { get; set; }
     }
 
     public class CreateThietBiDto
@@ -25,6 +26,7 @@ namespace PM_QLTBHTD.Application.DTOs
         public int? NamSanXuat { get; set; }
         public int TrangThai { get; set; } = 1;
         public string? GhiChu { get; set; }
+        public decimal? TaiDinhMuc { get; set; }
     }
 
     public class UpdateThietBiDto
@@ -37,5 +39,6 @@ namespace PM_QLTBHTD.Application.DTOs
         public int? NamSanXuat { get; set; }
         public int TrangThai { get; set; }
         public string? GhiChu { get; set; }
+        public decimal? TaiDinhMuc { get; set; }
     }
 }

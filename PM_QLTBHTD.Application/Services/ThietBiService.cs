@@ -36,11 +36,12 @@ namespace PM_QLTBHTD.Application.Services
                        NhanHieu = tb.NhanHieu,
                        NamSanXuat = tb.NamSanXuat,
                        TrangThai = tb.TrangThai,
-                       GhiChu = tb.GhiChu
+                       GhiChu = tb.GhiChu,
+                       TaiDinhMuc = tb.TaiDinhMuc
                    };
         }
 
-        public async Task<PagedResult<ThietBiDto>> GetPagedAsync(string? search, int page, int pageSize)
+        public async Task<PagedResult<ThietBiDto>> GetPagedAsync(string? search, int page, int? pageSize)
         {
             var query = JoinQuery().Where(x =>
                 string.IsNullOrEmpty(search)
@@ -49,8 +50,10 @@ namespace PM_QLTBHTD.Application.Services
                 || (!string.IsNullOrEmpty(x.TenTram) && x.TenTram.Contains(search)));
 
             var total = await query.CountAsync();
-            var items = await query.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
-            return new PagedResult<ThietBiDto> { Items = items, Total = total, Page = page, PageSize = pageSize };
+            if (pageSize.HasValue)
+                query = query.Skip((page - 1) * pageSize.Value).Take(pageSize.Value);
+            var items = await query.ToListAsync();
+            return new PagedResult<ThietBiDto> { Items = items, Total = total, Page = page, PageSize = pageSize ?? total };
         }
 
         public async Task<IEnumerable<ThietBiDto>> GetAllActiveAsync()
@@ -76,7 +79,8 @@ namespace PM_QLTBHTD.Application.Services
                 NhanHieu = dto.NhanHieu,
                 NamSanXuat = dto.NamSanXuat,
                 TrangThai = dto.TrangThai,
-                GhiChu = dto.GhiChu
+                GhiChu = dto.GhiChu,
+                TaiDinhMuc = dto.TaiDinhMuc
             };
             await _repository.AddAsync(entity);
             await _repository.SaveChangesAsync();
@@ -96,6 +100,7 @@ namespace PM_QLTBHTD.Application.Services
             entity.NamSanXuat = dto.NamSanXuat;
             entity.TrangThai = dto.TrangThai;
             entity.GhiChu = dto.GhiChu;
+            entity.TaiDinhMuc = dto.TaiDinhMuc;
             _repository.Update(entity);
             await _repository.SaveChangesAsync();
             return await GetByIdAsync(id);

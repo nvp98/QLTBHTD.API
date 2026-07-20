@@ -21,7 +21,7 @@ namespace PM_QLTBHTD.API.Controllers
             [FromQuery] int? idNhom,
             [FromQuery] int? idLoai,
             [FromQuery] int page = 1,
-            [FromQuery] int pageSize = 20)
+            [FromQuery] int? pageSize = null)
             => Ok(await _service.GetPagedAsync(search, idNhom, idLoai, page, pageSize));
 
         [HttpGet("active")]

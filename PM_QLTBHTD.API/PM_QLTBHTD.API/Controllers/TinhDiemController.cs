@@ -20,7 +20,7 @@ namespace PM_QLTBHTD.API.Controllers
         /// Tính điểm một nhóm chỉ tiêu cụ thể cho phiếu kiểm tra.
         /// Kết quả được cache trong CBM_KetQuaNhom.
         /// </summary>
-        [HttpGet("{idPhieu}/tinh-diem-nhom/{idNhomChiTieu}")]
+        [HttpGet("tinh-diem-nhom/{idNhomChiTieu}/{idPhieu}")]
         public async Task<IActionResult> TinhDiemNhom(int idPhieu, int idNhomChiTieu, CancellationToken ct)
         {
             try
@@ -43,10 +43,28 @@ namespace PM_QLTBHTD.API.Controllers
         }
 
         /// <summary>
+        /// Tính lại CSSK đại diện cho cả phiếu và ghi vào PhieuKiemTra.TongDiem_Soqt.
+        /// Dùng để "làm mới" sau khi sửa công thức/cây chỉ tiêu hoặc bổ sung dữ liệu còn thiếu.
+        /// </summary>
+        [HttpPost("tinh-tong-diem/{idPhieu}")]
+        public async Task<IActionResult> TinhTongDiem(int idPhieu, CancellationToken ct)
+        {
+            try
+            {
+                var diem = await _engine.TinhVaLuuTongDiemAsync(idPhieu, ct);
+                return Ok(new { IDPhieu = idPhieu, TongDiem_Soqt = diem });
+            }
+            catch (NhieuNhomGocException ex)
+            {
+                return UnprocessableEntity(new { Error = ex.Message, ex.IdLoaiThietBi, ex.SoLuongGoc });
+            }
+        }
+
+        /// <summary>
         /// Tính toàn bộ cây chỉ số sức khỏe cho phiếu kiểm tra.
         /// Trả về cây kết quả lồng nhau.
         /// </summary>
-        [HttpGet("{idPhieu}/tinh-chi-so-suc-khoe")]
+        [HttpGet("tinh-chi-so-suc-khoe/{idPhieu}")]
         public async Task<IActionResult> TinhChiSoSucKhoe(int idPhieu, [FromQuery] int idLoaiThietBi, CancellationToken ct)
         {
             try

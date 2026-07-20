@@ -19,26 +19,26 @@ namespace PM_QLTBHTD.Application.Services
 
         private static ChiTieuPhanLoaiNguongDto ToDto(CBM_ChiTieu_PhanLoaiNguong e) => new()
         {
-            ID_PhanLoai = e.ID_PhanLoai,
-            ID_ChiTieu = e.ID_ChiTieu,
-            MaMuc = e.MaMuc,
-            GiaTriTu = e.GiaTriTu,
-            GiaTriDen = e.GiaTriDen,
-            GiaTriTu_BaoGom = e.GiaTriTu_BaoGom,
+            ID_PhanLoai      = e.ID_PhanLoai,
+            ID_ChiTieu       = e.ID_ChiTieu,
+            MaMuc            = e.MaMuc,
+            GiaTriTu         = e.GiaTriTu,
+            GiaTriDen        = e.GiaTriDen,
+            GiaTriTu_BaoGom  = e.GiaTriTu_BaoGom,
             GiaTriDen_BaoGom = e.GiaTriDen_BaoGom,
-            TrongSo = e.TrongSo,
-            ThuTu = e.ThuTu,
+            TrongSo          = e.TrongSo,
+            ThuTu            = e.ThuTu,
         };
 
-        private static KetQuaPhanLoaiThangDto ToKetQuaDto(CBM_KetQuaPhanLoaiThang e) => new()
+        private static KetQuaPhanLoaiThangDto ToDto(CBM_KetQuaPhanLoaiThang e) => new()
         {
-            IDPhieu = e.IDPhieu,
+            IDPhieu    = e.IDPhieu,
             ID_ChiTieu = e.ID_ChiTieu,
-            Nam = e.Nam,
-            Thang = e.Thang,
-            GiaTriDo = e.GiaTriDo,
-            MaMuc = e.MaMuc,
-            TrongSo = e.TrongSo,
+            Nam        = e.Nam,
+            Thang      = e.Thang,
+            GiaTriDo   = e.GiaTriDo,
+            MaMuc      = e.MaMuc,
+            TrongSo    = e.TrongSo,
         };
 
         public async Task<IEnumerable<ChiTieuPhanLoaiNguongDto>> GetByChiTieuAsync(int idChiTieu)
@@ -54,14 +54,14 @@ namespace PM_QLTBHTD.Application.Services
         {
             var entity = new CBM_ChiTieu_PhanLoaiNguong
             {
-                ID_ChiTieu = dto.ID_ChiTieu,
-                MaMuc = dto.MaMuc,
-                GiaTriTu = dto.GiaTriTu,
-                GiaTriDen = dto.GiaTriDen,
-                GiaTriTu_BaoGom = dto.GiaTriTu_BaoGom,
+                ID_ChiTieu       = dto.ID_ChiTieu,
+                MaMuc            = dto.MaMuc,
+                GiaTriTu         = dto.GiaTriTu,
+                GiaTriDen        = dto.GiaTriDen,
+                GiaTriTu_BaoGom  = dto.GiaTriTu_BaoGom,
                 GiaTriDen_BaoGom = dto.GiaTriDen_BaoGom,
-                TrongSo = dto.TrongSo,
-                ThuTu = dto.ThuTu,
+                TrongSo          = dto.TrongSo,
+                ThuTu            = dto.ThuTu,
             };
             await _repository.AddAsync(entity);
             await _repository.SaveChangesAsync();
@@ -73,13 +73,13 @@ namespace PM_QLTBHTD.Application.Services
             var entity = await _repository.GetByIdAsync(id);
             if (entity == null) return null;
 
-            entity.MaMuc = dto.MaMuc;
-            entity.GiaTriTu = dto.GiaTriTu;
-            entity.GiaTriDen = dto.GiaTriDen;
-            entity.GiaTriTu_BaoGom = dto.GiaTriTu_BaoGom;
+            entity.MaMuc            = dto.MaMuc;
+            entity.GiaTriTu         = dto.GiaTriTu;
+            entity.GiaTriDen        = dto.GiaTriDen;
+            entity.GiaTriTu_BaoGom  = dto.GiaTriTu_BaoGom;
             entity.GiaTriDen_BaoGom = dto.GiaTriDen_BaoGom;
-            entity.TrongSo = dto.TrongSo;
-            entity.ThuTu = dto.ThuTu;
+            entity.TrongSo          = dto.TrongSo;
+            entity.ThuTu            = dto.ThuTu;
 
             _repository.Update(entity);
             await _repository.SaveChangesAsync();
@@ -97,6 +97,6 @@ namespace PM_QLTBHTD.Application.Services
         }
 
         public async Task<IEnumerable<KetQuaPhanLoaiThangDto>> GetKetQuaThangAsync(int idPhieu, int idChiTieu)
-            => (await _ketQuaRepository.GetByPhieuChiTieuAsync(idPhieu, idChiTieu)).Select(ToKetQuaDto);
+            => (await _ketQuaRepository.GetByPhieuChiTieuAsync(idPhieu, idChiTieu)).Select(ToDto);
     }
 }

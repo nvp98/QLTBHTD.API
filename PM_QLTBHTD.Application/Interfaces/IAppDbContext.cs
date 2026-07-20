@@ -19,6 +19,8 @@ namespace PM_QLTBHTD.Application.Interfaces
         IQueryable<CBM_Nguong> Nguongs { get; }
         IQueryable<CBM_ChiTieu_Input> ChiTieuInputs { get; }
         IQueryable<CBM_ChiTieu_Rule> ChiTieuRules { get; }
+        IQueryable<CBM_ChiTieu_Formula> ChiTieuFormulas { get; }
+        IQueryable<CBM_ChiTieu_Formula_ThamSo> ChiTieuFormulaThamSos { get; }
 
         // Công thức tổng hợp
         IQueryable<CBM_CongThucTongHop> CongThucTongHops { get; }

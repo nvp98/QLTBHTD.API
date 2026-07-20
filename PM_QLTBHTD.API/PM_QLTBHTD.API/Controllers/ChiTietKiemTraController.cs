@@ -62,10 +62,23 @@ namespace PM_QLTBHTD.API.Controllers
                     };
                 }
 
+                decimal? tongDiem = null;
+                string? canhBaoTongDiem = null;
+                try
+                {
+                    tongDiem = await _engine.TinhVaLuuTongDiemAsync(idPhieu, ct);
+                }
+                catch (NhieuNhomGocException ex)
+                {
+                    canhBaoTongDiem = ex.Message;
+                }
+
                 return Ok(new NhapPhieuKiemTraResponse
                 {
                     KetQuaNhap = ketQuaNhap.ToList(),
-                    KetQuaTinhDiem = ketQuaTinhDiem
+                    KetQuaTinhDiem = ketQuaTinhDiem,
+                    TongDiem_Soqt = tongDiem,
+                    CanhBaoTongDiem = canhBaoTongDiem
                 });
             }
             catch (ThieuBieuThucNguongException ex)
@@ -84,9 +97,13 @@ namespace PM_QLTBHTD.API.Controllers
             {
                 return UnprocessableEntity(new { Error = ex.Message, ex.IdChiTieu });
             }
-            catch (ThieuDuLieuThangDoException ex)
+            catch (ThieuTaiDinhMucException ex)
             {
-                return UnprocessableEntity(new { Error = ex.Message, ex.IdChiTieu, ex.IdPhieu });
+                return UnprocessableEntity(new { Error = ex.Message, ex.IdThietBi });
+            }
+            catch (LoiFormulaException ex)
+            {
+                return UnprocessableEntity(new { Error = ex.Message, ex.IdChiTieu, ex.MaKetQua });
             }
         }
 

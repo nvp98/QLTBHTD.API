@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using PM_QLTBHTD.Application.DTOs;
-using PM_QLTBHTD.Application.Helpers;
+using PM_QLTBHTD.Application.Exceptions;
 using PM_QLTBHTD.Application.Interfaces;
 using PM_QLTBHTD.Domain.Entities;
 using PM_QLTBHTD.Domain.IRepository;
@@ -12,21 +12,24 @@ namespace PM_QLTBHTD.Application.Services
         private readonly IPhieuKiemTraRepository _phieuRepo;
         private readonly IChiTietKiemTraRepository _chiTietRepo;
         private readonly IChiTietKiemTraInputRepository _chiTietInputRepo;
-        private readonly INguongRepository _nguongRepo;
         private readonly IAppDbContext _db;
+        private readonly IChiTieuScoringService _scoringService;
+        private readonly IScoringEngine _scoringEngine;
 
         public PhieuKiemTraService(
             IPhieuKiemTraRepository phieuRepo,
             IChiTietKiemTraRepository chiTietRepo,
             IChiTietKiemTraInputRepository chiTietInputRepo,
-            INguongRepository nguongRepo,
-            IAppDbContext db)
+            IAppDbContext db,
+            IChiTieuScoringService scoringService,
+            IScoringEngine scoringEngine)
         {
             _phieuRepo = phieuRepo;
             _chiTietRepo = chiTietRepo;
             _chiTietInputRepo = chiTietInputRepo;
-            _nguongRepo = nguongRepo;
             _db = db;
+            _scoringService = scoringService;
+            _scoringEngine = scoringEngine;
         }
 
         private IQueryable<PhieuKiemTraDto> JoinQuery()
@@ -50,7 +53,7 @@ namespace PM_QLTBHTD.Application.Services
                    };
         }
 
-        public async Task<PagedResult<PhieuKiemTraDto>> GetPagedAsync(string? search, int page, int pageSize)
+        public async Task<PagedResult<PhieuKiemTraDto>> GetPagedAsync(string? search, int page, int? pageSize)
         {
             var query = JoinQuery().Where(x =>
                 string.IsNullOrEmpty(search)
@@ -58,9 +61,11 @@ namespace PM_QLTBHTD.Application.Services
                 || (x.NguoiKiemTra != null && x.NguoiKiemTra.Contains(search)));
 
             var total = await query.CountAsync();
-            var items = await query.OrderByDescending(x => x.NgayKiemTra)
-                                   .Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
-            return new PagedResult<PhieuKiemTraDto> { Items = items, Total = total, Page = page, PageSize = pageSize };
+            var ordered = query.OrderByDescending(x => x.NgayKiemTra);
+            var items = await (pageSize.HasValue
+                ? ordered.Skip((page - 1) * pageSize.Value).Take(pageSize.Value)
+                : ordered).ToListAsync();
+            return new PagedResult<PhieuKiemTraDto> { Items = items, Total = total, Page = page, PageSize = pageSize ?? total };
         }
 
         public async Task<IEnumerable<PhieuKiemTraDto>> GetByThietBiAsync(int idThietBi)
@@ -110,148 +115,63 @@ namespace PM_QLTBHTD.Application.Services
 
         public async Task<PhieuKiemTraDto> CreateAsync(CreatePhieuKiemTraDto dto)
         {
+            var ngayKiemTra = dto.NgayKiemTra ?? DateTime.Now;
             var phieu = new PhieuKiemTra
             {
                 ID_ThietBi     = dto.ID_ThietBi,
                 ID_NhomChiTieu = dto.ID_NhomChiTieu,
-                NgayKiemTra    = DateTime.Now,
+                NgayKiemTra    = ngayKiemTra,
                 NguoiKiemTra   = dto.NguoiKiemTra,
                 GhiChuChung    = dto.GhiChuChung,
-                SoPhieu        = await GenerateSoPhieuAsync(dto.ID_ThietBi, DateTime.Now)
+                SoPhieu        = await GenerateSoPhieuAsync(dto.ID_ThietBi, ngayKiemTra)
             };
             await _phieuRepo.AddAsync(phieu);
             await _phieuRepo.SaveChangesAsync();
 
-            // Tải LoaiTinhDiem cho các chỉ tiêu trong phiếu
+            // Map DTO tạo phiếu -> DTO nhập liệu dùng chung với ChiTieuScoringService, để chỉ còn
+            // 1 nguồn tính Si duy nhất (Rule/LF/Formula/Nguong đều xử lý trong đó, kể cả khi tạo phiếu mới).
             var allCtIds = dto.ChiTiets.Select(x => x.ID_ChiTieu).ToList();
-            var chiTieuMetas = await _db.ChiTieus
-                .Where(c => allCtIds.Contains(c.ID_ChiTieu))
-                .Select(c => new { c.ID_ChiTieu, c.LoaiTinhDiem })
+            var inputDefs = await _db.ChiTieuInputs
+                .Where(i => allCtIds.Contains(i.ID_ChiTieu))
                 .ToListAsync();
+            var inputDefById = inputDefs.ToDictionary(i => i.ID_Input);
 
-            // Index input definitions theo ID_ChiTieu để tránh N+1 cho Rule criteria
-            var ruleCtIds = chiTieuMetas
-                .Where(m => m.LoaiTinhDiem == "Rule")
-                .Select(m => m.ID_ChiTieu)
-                .ToList();
-
-            Dictionary<int, List<CBM_ChiTieu_Input>> inputDefsMap = new();
-            Dictionary<int, List<CBM_ChiTieu_Rule>> rulesMap = new();
-            if (ruleCtIds.Count > 0 && dto.ChiTietInputs.Count > 0)
+            var danhSachNhap = dto.ChiTiets.Select(ct =>
             {
-                var allInputDefs = await _db.ChiTieuInputs
-                    .Where(i => ruleCtIds.Contains(i.ID_ChiTieu))
-                    .ToListAsync();
-                inputDefsMap = allInputDefs.GroupBy(i => i.ID_ChiTieu)
-                    .ToDictionary(g => g.Key, g => g.ToList());
+                var vars = new Dictionary<string, decimal>();
 
-                var allRules = await _db.ChiTieuRules
-                    .Where(r => ruleCtIds.Contains(r.ID_ChiTieu))
-                    .ToListAsync();
-                rulesMap = allRules.GroupBy(r => r.ID_ChiTieu)
-                    .ToDictionary(g => g.Key, g => g.ToList());
-            }
+                foreach (var v in dto.ChiTietInputs)
+                    if (inputDefById.TryGetValue(v.ID_Input, out var def) && def.ID_ChiTieu == ct.ID_ChiTieu)
+                        vars[def.MaInput] = v.GiaTriSo;
 
-            // Lưu chi tiết và thu thập (idChiTieu, diemDat) để tính CSSK
-            var ketQuaChiTiets = new List<(int IdChiTieu, decimal? DiemDat)>();
-            foreach (var ct in dto.ChiTiets)
-            {
-                var loaiTinhDiem = chiTieuMetas.FirstOrDefault(m => m.ID_ChiTieu == ct.ID_ChiTieu)?.LoaiTinhDiem;
-                decimal? diemDat = null;
+                foreach (var ni in dto.ChiTietInputsNamed)
+                    if (ni.ID_ChiTieu == ct.ID_ChiTieu)
+                        vars[ni.MaInput] = ni.GiaTriSo;
 
-                if (loaiTinhDiem == "Rule"
-                    && inputDefsMap.TryGetValue(ct.ID_ChiTieu, out var inputDefs)
-                    && inputDefs.Count > 0)
+                return new NhapChiTietKiemTraDto
                 {
-                    // Xây biến dict từ giá trị đã nộp (Rule type — có ID_Input từ DB)
-                    var vars = new Dictionary<string, decimal>();
-                    foreach (var def in inputDefs)
-                    {
-                        var submitted = dto.ChiTietInputs.FirstOrDefault(v => v.ID_Input == def.ID_Input);
-                        if (submitted != null)
-                        {
-                            vars[def.MaInput] = submitted.GiaTriSo;
-                            await _chiTietInputRepo.AddAsync(new ChiTietKiemTra_Input
-                            {
-                                IDPhieu    = phieu.ID_Phieu,
-                                ID_ChiTieu = ct.ID_ChiTieu,
-                                ID_Input   = def.ID_Input,
-                                MaInput    = def.MaInput,
-                                GiaTriSo   = submitted.GiaTriSo
-                            });
-                        }
-                    }
-
-                    // Đánh giá từng rule theo thứ tự Diem_Si giảm dần
-                    if (vars.Count > 0 && rulesMap.TryGetValue(ct.ID_ChiTieu, out var rules))
-                    {
-                        foreach (var rule in rules.OrderByDescending(r => r.Diem_Si))
-                        {
-                            if (NguongEvaluator.EvalNCalc(rule.BieuThuc, vars))
-                            {
-                                diemDat = rule.Diem_Si;
-                                break;
-                            }
-                        }
-                    }
-                }
-                else
-                {
-                    // Nguong với nhiều biến: frontend gửi theo tên (ChiTietInputsNamed)
-                    // khi threshold dùng BieuThuc_Logic chứa nhiều ẩn số
-                    var namedInputs = dto.ChiTietInputsNamed
-                        .Where(x => x.ID_ChiTieu == ct.ID_ChiTieu)
-                        .ToList();
-
-                    if (namedInputs.Count > 0)
-                    {
-                        var vars = namedInputs.ToDictionary(x => x.MaInput, x => x.GiaTriSo);
-                        var nguongs = await _nguongRepo.GetByChiTieuAsync(ct.ID_ChiTieu);
-                        foreach (var ng in nguongs.OrderByDescending(n => n.Diem_Si))
-                        {
-                            bool matches = !string.IsNullOrWhiteSpace(ng.BieuThuc_Logic)
-                                ? NguongEvaluator.EvalNCalc(ng.BieuThuc_Logic, vars)
-                                : NguongEvaluator.KiemTraRange(
-                                    vars.Count == 1 ? vars.Values.First() : null, ng);
-                            if (matches) { diemDat = ng.Diem_Si; break; }
-                        }
-
-                        // Lưu từng biến đầu vào synthetic vào ChiTietKiemTra_Input
-                        foreach (var ni in namedInputs)
-                        {
-                            await _chiTietInputRepo.AddAsync(new ChiTietKiemTra_Input
-                            {
-                                IDPhieu    = phieu.ID_Phieu,
-                                ID_ChiTieu = ct.ID_ChiTieu,
-                                MaInput    = ni.MaInput,
-                                GiaTriSo   = ni.GiaTriSo
-                            });
-                        }
-                    }
-                    else
-                    {
-                        diemDat = await TinhDiemAsync(ct.ID_ChiTieu, ct.GiaTriNhap_So);
-                    }
-                }
-
-                var chiTiet = new ChiTietKiemTra
-                {
-                    IDPhieu         = phieu.ID_Phieu,
-                    ID_ChiTieu      = ct.ID_ChiTieu,
-                    GiaTriNhap_So   = ct.GiaTriNhap_So,
-                    GiaTriNhap_Chu  = ct.GiaTriNhap_Chu,
-                    Diem_Si_DatDuoc = diemDat,
-                    GhiChu          = ct.GhiChu
+                    ID_ChiTieu     = ct.ID_ChiTieu,
+                    GiaTriNhap_So  = ct.GiaTriNhap_So,
+                    GiaTriNhap_Chu = ct.GiaTriNhap_Chu,
+                    GhiChu         = ct.GhiChu,
+                    DanhSachInput  = vars.Count > 0 ? vars : null
                 };
-                await _chiTietRepo.AddAsync(chiTiet);
-                ketQuaChiTiets.Add((ct.ID_ChiTieu, diemDat));
-            }
+            }).ToList();
 
-            // Tính CSSK theo công thức có trọng số (kết quả 0-100)
-            //phieu.TongDiem_Soqt = await TinhCSSKAsync(ketQuaChiTiets);
-            //phieu.CapDoCanhBao  = XepLoaiCapDo(phieu.TongDiem_Soqt ?? 0);
-            _phieuRepo.Update(phieu);
-            await _phieuRepo.SaveChangesAsync();
+            await _scoringService.TinhVaLuuDiemSiAsync(phieu.ID_Phieu, danhSachNhap);
+
+            // Tính và lưu CSSK tổng qua ScoringEngine (đệ quy cây chỉ tiêu từ nhóm gốc).
+            // Không chặn tạo phiếu nếu cây chưa đủ công thức/dữ liệu — ScoringEngine tự trả null
+            // cho các lỗi tính toán thông thường; chỉ NhieuNhomGocException (lỗi cấu hình loại
+            // thiết bị có >1 nhóm gốc) là đáng chú ý nhưng cũng không nên chặn việc lưu phiếu.
+            try
+            {
+                await _scoringEngine.TinhVaLuuTongDiemAsync(phieu.ID_Phieu);
+            }
+            catch (NhieuNhomGocException)
+            {
+                // Cấu hình cây có vấn đề (nhiều nhóm gốc) — để CSSK tổng trống, không chặn tạo phiếu.
+            }
 
             return (await GetByIdAsync(phieu.ID_Phieu))!;
         }
@@ -331,16 +251,6 @@ namespace PM_QLTBHTD.Application.Services
             int stt = soPhieuHomNay + 1;
 
             return $"PKT-{kyHieu}-{ngayStr}-{stt:D3}";
-        }
-
-        private async Task<decimal?> TinhDiemAsync(int idChiTieu, decimal? giaTriSo)
-        {
-            if (giaTriSo == null) return null;
-            var nguongs = await _nguongRepo.GetByChiTieuAsync(idChiTieu);
-            return nguongs
-                .OrderByDescending(ng => ng.Diem_Si)
-                .FirstOrDefault(ng => NguongEvaluator.KiemTraNguongVoiGiaTri(giaTriSo, ng))
-                ?.Diem_Si;
         }
 
     }

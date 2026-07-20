@@ -4,7 +4,6 @@ using PM_QLTBHTD.Application.Services;
 
 namespace PM_QLTBHTD.API.Controllers
 {
-    /// <summary>Cấu hình mức phân loại (N0..N4) cho chỉ tiêu kiểu LoaiTinhDiem='LF' (Load Factor).</summary>
     [ApiController]
     [Route("api/chitieu-phanloai")]
     public class ChiTieuPhanLoaiNguongController : ControllerBase
@@ -46,7 +45,6 @@ namespace PM_QLTBHTD.API.Controllers
             return result ? NoContent() : NotFound();
         }
 
-        /// <summary>Kết quả phân loại từng tháng đã tính cho 1 phiếu — dùng để hiển thị lại sau khi nhập.</summary>
         [HttpGet("ket-qua-thang/{idPhieu}/{idChiTieu}")]
         public async Task<IActionResult> GetKetQuaThang(int idPhieu, int idChiTieu)
             => Ok(await _service.GetKetQuaThangAsync(idPhieu, idChiTieu));

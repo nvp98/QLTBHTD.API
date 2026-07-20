@@ -28,6 +28,21 @@ namespace PM_QLTBHTD.Application.Helpers
         }
 
         /// <summary>
+        /// Đánh giá biểu thức NCalc SỐ (không phải boolean) — dùng cho tầng Formula
+        /// (giá trị trung gian, vd DT1 = T_tren - T_duoi) và cho CBM_ChiTieu_Rule.LoaiRule='CONG_THUC'
+        /// (gộp nhiều Si, vd Min(Si_DT1, Si_DT2)). Biến không có trong dict mặc định = 0.
+        /// </summary>
+        internal static decimal EvalNCalcNumeric(string bieuThuc, Dictionary<string, decimal> vars)
+        {
+            var expr = new Expression(bieuThuc);
+            expr.EvaluateParameter += (name, args) =>
+            {
+                args.Result = vars.TryGetValue(name, out var val) ? (double)val : 0d;
+            };
+            return Convert.ToDecimal(expr.Evaluate());
+        }
+
+        /// <summary>
         /// Kiểm tra giá trị đơn có nằm trong khoảng [CanDuoi, CanTren] của ngưỡng không.
         /// Trả về false nếu giaTri là null.
         /// </summary>

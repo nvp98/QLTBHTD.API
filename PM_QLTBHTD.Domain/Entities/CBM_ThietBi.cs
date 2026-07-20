@@ -17,5 +17,7 @@ namespace PM_QLTBHTD.Domain.Entities
         public int TrangThai { get; set; }
         public string? GhiChu { get; set; }
 
+        /// <summary>Tải định mức (MVA) — dùng làm SB trong công thức LF (Si/SB) của chỉ tiêu "Quá khứ mang tải".</summary>
+        public decimal? TaiDinhMuc { get; set; }
     }
 }

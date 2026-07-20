@@ -11,6 +11,7 @@ namespace PM_QLTBHTD.Application.DTOs
         public int? ID_NhomCon { get; set; }
         public string? TenNhomCon { get; set; }
         public decimal? GiaTriHangSo { get; set; }
+        public decimal? TrongSo { get; set; }
         public string? MoTa { get; set; }
     }
 
@@ -22,6 +23,7 @@ namespace PM_QLTBHTD.Application.DTOs
         public int? ID_ChiTieuNguon { get; set; }
         public int? ID_NhomCon { get; set; }
         public decimal? GiaTriHangSo { get; set; }
+        public decimal? TrongSo { get; set; }
         public string? MoTa { get; set; }
     }
 
@@ -32,6 +34,7 @@ namespace PM_QLTBHTD.Application.DTOs
         public int? ID_ChiTieuNguon { get; set; }
         public int? ID_NhomCon { get; set; }
         public decimal? GiaTriHangSo { get; set; }
+        public decimal? TrongSo { get; set; }
         public string? MoTa { get; set; }
     }
 }

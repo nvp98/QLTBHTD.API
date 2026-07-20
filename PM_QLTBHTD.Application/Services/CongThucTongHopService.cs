@@ -131,6 +131,7 @@ namespace PM_QLTBHTD.Application.Services
                               ID_NhomCon = b.ID_NhomCon,
                               TenNhomCon = nh != null ? nh.TenNhom : null,
                               GiaTriHangSo = b.GiaTriHangSo,
+                              TrongSo = b.TrongSo,
                               MoTa = b.MoTa
                           }).ToListAsync();
         }

@@ -4,7 +4,6 @@ using PM_QLTBHTD.Application.Services;
 using PM_QLTBHTD.Domain.IRepository;
 using PM_QLTBHTD.Infrastructure.Persistence;
 using PM_QLTBHTD.Infrastructure.Repository;
-using PM_QLTBHTD.Infrastructure.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -25,6 +24,8 @@ builder.Services.AddScoped<IChiTieuRepository, ChiTieuRepository>();
 builder.Services.AddScoped<INguongRepository, NguongRepository>();
 builder.Services.AddScoped<IChiTieuInputRepository, ChiTieuInputRepository>();
 builder.Services.AddScoped<IChiTieuRuleRepository, ChiTieuRuleRepository>();
+builder.Services.AddScoped<IChiTieuFormulaRepository, ChiTieuFormulaRepository>();
+builder.Services.AddScoped<IChiTieuFormulaThamSoRepository, ChiTieuFormulaThamSoRepository>();
 
 // Repositories — công thức tổng hợp
 builder.Services.AddScoped<ICongThucTongHopRepository, CongThucTongHopRepository>();
@@ -53,6 +54,10 @@ builder.Services.AddScoped<INguongService, NguongService>();
 builder.Services.AddScoped<INguongScoringService, NguongScoringService>();
 builder.Services.AddScoped<IChiTieuInputService, ChiTieuInputService>();
 builder.Services.AddScoped<IChiTieuRuleService, ChiTieuRuleService>();
+builder.Services.AddScoped<IChiTieuFormulaService, ChiTieuFormulaService>();
+builder.Services.AddScoped<IChiTieuFormulaThamSoService, ChiTieuFormulaThamSoService>();
+builder.Services.AddScoped<IFormulaFunctionRegistry, FormulaFunctionRegistry>();
+builder.Services.AddScoped<IFormulaEngine, FormulaEngine>();
 builder.Services.AddScoped<IChiTieuPhanLoaiNguongService, ChiTieuPhanLoaiNguongService>();
 
 // Services — công thức tổng hợp
