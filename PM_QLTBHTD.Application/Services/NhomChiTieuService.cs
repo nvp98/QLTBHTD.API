@@ -32,6 +32,7 @@ namespace PM_QLTBHTD.Application.Services
                        LoaiNhom = n.LoaiNhom,
                        PhienBan = n.PhienBan,
                        TrangThai = n.TrangThai,
+                       TrongSo_Wi = n.TrongSo_Wi,
                        CoCongThuc = _db.CongThucTongHops.Any(c => c.ID_NhomChiTieu == n.ID_NhomChiTieu && c.TrangThai == 1)
                    };
         }
@@ -69,7 +70,8 @@ namespace PM_QLTBHTD.Application.Services
                 CapDo = dto.CapDo,
                 LoaiNhom = dto.LoaiNhom,
                 PhienBan = dto.PhienBan,
-                TrangThai = dto.TrangThai
+                TrangThai = dto.TrangThai,
+                TrongSo_Wi = dto.TrongSo_Wi
             };
             await _repository.AddAsync(entity);
             await _repository.SaveChangesAsync();
@@ -88,6 +90,7 @@ namespace PM_QLTBHTD.Application.Services
             entity.LoaiNhom = dto.LoaiNhom;
             entity.PhienBan = dto.PhienBan;
             entity.TrangThai = dto.TrangThai;
+            entity.TrongSo_Wi = dto.TrongSo_Wi;
             _repository.Update(entity);
             await _repository.SaveChangesAsync();
             return await GetByIdAsync(id);
@@ -120,6 +123,7 @@ namespace PM_QLTBHTD.Application.Services
                 LoaiNhom = x.LoaiNhom,
                 PhienBan = x.PhienBan,
                 TrangThai = x.TrangThai,
+                TrongSo_Wi = x.TrongSo_Wi,
                 CoCongThuc = x.CoCongThuc
             }).ToList();
 

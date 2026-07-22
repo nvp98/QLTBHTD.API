@@ -194,15 +194,39 @@ namespace PM_QLTBHTD.Application.Services
         }
 
         /// <summary>
-        /// Tra Threshold (CBM_Nguong.MaKetQua) cho từng giá trị Formula đã tính, rồi gộp lại thành
-        /// Si cuối: 1 Formula → dùng thẳng Si đó; nhiều Formula → bắt buộc có CBM_ChiTieu_Rule
-        /// (LoaiRule='CONG_THUC') để gộp, biến truyền vào đặt tên "Si_{MaKetQua}" (vd Si_DT1, Si_DT2).
+        /// Kết luận Si từ các giá trị Formula đã tính (vd DT1, DT2), theo đúng 1 trong 2 nhánh —
+        /// KHÔNG trộn cả hai để tránh nhập nhằng biến nào ứng với nguồn nào:
+        ///   Có CBM_ChiTieu_Rule (BANG_MUC hoặc CONG_THUC) cho chỉ tiêu này
+        ///     → dùng Rule, biến truyền vào Rule là giá trị Formula THÔ, đặt tên đúng MaKetQua
+        ///       (vd "DT1", "DT2") — cho phép Rule kết luận Si trực tiếp từ nhiều kết quả Formula
+        ///       cùng lúc (vd BANG_MUC "DT1&lt;=3 &amp;&amp; DT2&lt;=10" dựng bằng ExprBuilder AND/OR).
+        ///   Không có Rule nào
+        ///     → tra Threshold (CBM_Nguong.MaKetQua) cho từng kết quả Formula như trước (chỉ áp dụng
+        ///       khi có đúng 1 Formula — nhiều Formula mà không có Rule để gộp là lỗi cấu hình).
         /// </summary>
         private async Task<decimal?> TinhDiemTuFormulaAsync(
             int idChiTieu, Dictionary<string, decimal> ketQuaFormula, CancellationToken ct)
         {
-            var siTheoKetQua = new Dictionary<string, decimal>();
+            var congThucRule = await _db.ChiTieuRules
+                .Where(r => r.ID_ChiTieu == idChiTieu && r.LoaiRule == "CONG_THUC")
+                .FirstOrDefaultAsync(ct);
+            if (congThucRule != null)
+                return NguongEvaluator.EvalNCalcNumeric(congThucRule.BieuThuc, ketQuaFormula);
 
+            var bangMucRules = await _db.ChiTieuRules
+                .Where(r => r.ID_ChiTieu == idChiTieu && r.LoaiRule == "BANG_MUC")
+                .OrderByDescending(r => r.Diem_Si)
+                .ToListAsync(ct);
+            if (bangMucRules.Count > 0)
+            {
+                foreach (var rule in bangMucRules)
+                    if (NguongEvaluator.EvalNCalc(rule.BieuThuc, ketQuaFormula))
+                        return rule.Diem_Si;
+                return null; // có Rule nhưng không dòng nào khớp — coi như chưa xác định được Si
+            }
+
+            // Không có Rule -> tra Ngưỡng theo MaKetQua như cũ.
+            var siTheoKetQua = new Dictionary<string, decimal>();
             foreach (var (maKetQua, giaTri) in ketQuaFormula)
             {
                 var nguongs = await _db.Nguongs
@@ -230,15 +254,9 @@ namespace PM_QLTBHTD.Application.Services
             if (siTheoKetQua.Count == 1)
                 return siTheoKetQua.Values.First();
 
-            var rule = await _db.ChiTieuRules
-                .Where(r => r.ID_ChiTieu == idChiTieu && r.LoaiRule == "CONG_THUC")
-                .FirstOrDefaultAsync(ct);
-
-            if (rule is null)
-                throw new LoiFormulaException(idChiTieu, string.Join(",", siTheoKetQua.Keys),
-                    "Chỉ tiêu có nhiều Formula nhưng chưa cấu hình CBM_ChiTieu_Rule (LoaiRule='CONG_THUC') để gộp Si.");
-
-            return NguongEvaluator.EvalNCalcNumeric(rule.BieuThuc, siTheoKetQua);
+            throw new LoiFormulaException(idChiTieu, string.Join(",", siTheoKetQua.Keys),
+                "Chỉ tiêu có nhiều Formula nhưng chưa cấu hình CBM_ChiTieu_Rule (BANG_MUC hoặc " +
+                "CONG_THUC) để gộp Si.");
         }
 
         /// <summary>

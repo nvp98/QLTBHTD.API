@@ -44,6 +44,12 @@ namespace PM_QLTBHTD.Infrastructure.Persistence
         {
             base.OnModelCreating(modelBuilder);
 
+            // Bảng có trigger DB (TR_ChiTietKiemTra_Input_FillThietBi, tự điền ID_ThietBi sau INSERT)
+            // — phải khai báo cho EF Core biết, nếu không nó dùng OUTPUT INSERTED.* để lấy ID vừa
+            // sinh, mà SQL Server cấm OUTPUT (không INTO) trên bảng có trigger → DbUpdateException.
+            modelBuilder.Entity<ChiTietKiemTra_Input>()
+                .ToTable(tb => tb.HasTrigger("TR_ChiTietKiemTra_Input_FillThietBi"));
+
             // Unique: mỗi nhóm COMPOSITE chỉ có 1 công thức ACTIVE — ép ở app layer,
             // nhưng thêm filtered unique index để DB cũng chặn được duplicates.
             modelBuilder.Entity<CBM_CongThucTongHop>()

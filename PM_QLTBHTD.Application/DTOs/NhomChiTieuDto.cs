@@ -12,6 +12,8 @@ namespace PM_QLTBHTD.Application.DTOs
         public int PhienBan { get; set; }
         public int TrangThai { get; set; }
         public bool CoCongThuc { get; set; }
+        /// <summary>Trọng số canonical của nhóm khi tham gia công thức nhóm cha (NHOM_CON).</summary>
+        public decimal? TrongSo_Wi { get; set; }
     }
 
     /// <summary>Node trong cây NhomChiTieu — bao gồm các node con đệ quy.</summary>
@@ -29,6 +31,7 @@ namespace PM_QLTBHTD.Application.DTOs
         public string LoaiNhom { get; set; } = "LEAF";
         public int PhienBan { get; set; } = 1;
         public int TrangThai { get; set; } = 1;
+        public decimal? TrongSo_Wi { get; set; }
     }
 
     public class UpdateNhomChiTieuDto
@@ -40,5 +43,6 @@ namespace PM_QLTBHTD.Application.DTOs
         public string LoaiNhom { get; set; } = "LEAF";
         public int PhienBan { get; set; }
         public int TrangThai { get; set; }
+        public decimal? TrongSo_Wi { get; set; }
     }
 }

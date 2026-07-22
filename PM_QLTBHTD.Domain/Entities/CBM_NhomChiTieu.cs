@@ -20,5 +20,12 @@ namespace PM_QLTBHTD.Domain.Entities
 
         /// <summary>'LEAF' = có ChiTieu con trực tiếp; 'COMPOSITE' = gộp nhiều NhomChiTieu con.</summary>
         public string LoaiNhom { get; set; } = "LEAF";
+
+        /// <summary>
+        /// Trọng số CANONICAL của nhóm khi được tham chiếu làm biến NHOM_CON trong công thức
+        /// tổng hợp của nhóm cha (vd "Chất lượng dầu" Wi=6 khi tham gia TS1). Dùng làm fallback
+        /// khi CBM_CongThuc_Bien.TrongSo (override riêng cho 1 công thức) để trống.
+        /// </summary>
+        public decimal? TrongSo_Wi { get; set; }
     }
 }

@@ -41,6 +41,10 @@ namespace PM_QLTBHTD.API.Controllers
             return item == null ? NotFound() : Ok(item);
         }
 
+        [HttpGet("lich-su-chi-tieu/{idThietBi}/{idChiTieu}")]
+        public async Task<IActionResult> GetLichSuChiTieu(int idThietBi, int idChiTieu)
+            => Ok(await _service.GetLichSuChiTieuAsync(idThietBi, idChiTieu));
+
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreatePhieuKiemTraDto dto)
         {

@@ -194,7 +194,21 @@ namespace PM_QLTBHTD.Application.Services
                         _ => throw new InvalidOperationException($"NguonBien không hợp lệ: '{bien.NguonBien}'")
                     };
                     bindValues[bien.MaBien] = val;
-                    weightedValues.Add((val, bien.TrongSo ?? 1m));
+
+                    // Thứ tự ưu tiên trọng số: override riêng cho công thức này (CBM_CongThuc_Bien.TrongSo)
+                    // > nếu biến có gắn ID_NhomCon (kể cả khi giá trị lấy từ CHITIEU) thì ưu tiên lấy
+                    //   Wᵢ "chính danh" của hạng mục LEAF đó — cho phép 1 biến lấy điểm thẳng từ 1 Chỉ tiêu
+                    //   nhưng lấy trọng số từ Nhóm chỉ tiêu cha (đúng cấu trúc Sᵢ của QT.40, trọng số neo
+                    //   theo hạng mục chứ không neo theo từng chỉ tiêu lẻ)
+                    // > trọng số gốc của Chỉ tiêu được tham chiếu (nếu NguonBien=CHITIEU)
+                    // > 1 (mặc định, coi như đồng trọng số).
+                    decimal trongSo = bien.TrongSo
+                        ?? (bien.ID_NhomCon.HasValue
+                            ? await LayTrongSoNhomAsync(bien.ID_NhomCon.Value, ct)
+                            : bien.NguonBien == "CHITIEU"
+                                ? await LayTrongSoChiTieuAsync(bien.ID_ChiTieuNguon!.Value, ct)
+                                : 1m);
+                    weightedValues.Add((val, trongSo));
                 }
 
                 duongDi.Remove(idNhomChiTieu);
@@ -238,6 +252,18 @@ namespace PM_QLTBHTD.Application.Services
 
             return diem;
         }
+
+        private async Task<decimal> LayTrongSoChiTieuAsync(int idChiTieu, CancellationToken ct)
+            => await _db.ChiTieus
+                .Where(c => c.ID_ChiTieu == idChiTieu)
+                .Select(c => c.TrongSo_Wi)
+                .FirstOrDefaultAsync(ct) ?? 1m;
+
+        private async Task<decimal> LayTrongSoNhomAsync(int idNhomChiTieu, CancellationToken ct)
+            => await _db.NhomChiTieus
+                .Where(n => n.ID_NhomChiTieu == idNhomChiTieu)
+                .Select(n => n.TrongSo_Wi)
+                .FirstOrDefaultAsync(ct) ?? 1m;
 
         private async Task<double> LayDiemChiTieuAsync(int idChiTieu, int idPhieu, CancellationToken ct)
         {

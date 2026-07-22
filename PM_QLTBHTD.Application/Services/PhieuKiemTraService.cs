@@ -99,6 +99,8 @@ namespace PM_QLTBHTD.Application.Services
                                       GhiChu = ct.GhiChu
                                   }).ToListAsync();
 
+            await GanDanhSachInputAsync(idPhieu, chiTiets, ct => ct.ID_ChiTieu, (ct, ds) => ct.DanhSachInput = ds);
+
             return new PhieuKiemTraDetailDto
             {
                 ID_Phieu = phieu.ID_Phieu,
@@ -111,6 +113,80 @@ namespace PM_QLTBHTD.Application.Services
                 GhiChuChung = phieu.GhiChuChung,
                 ChiTiets = chiTiets
             };
+        }
+
+        public async Task<List<LichSuChiTieuDto>> GetLichSuChiTieuAsync(int idThietBi, int idChiTieu)
+        {
+            var lichSu = await (from ct in _db.ChiTietKiemTras
+                                join p in _db.PhieuKiemTras on ct.IDPhieu equals p.ID_Phieu
+                                where p.ID_ThietBi == idThietBi && ct.ID_ChiTieu == idChiTieu
+                                orderby p.NgayKiemTra descending
+                                select new LichSuChiTieuDto
+                                {
+                                    ID_Phieu = p.ID_Phieu,
+                                    NgayKiemTra = p.NgayKiemTra,
+                                    GiaTriNhap_So = ct.GiaTriNhap_So,
+                                    GiaTriNhap_Chu = ct.GiaTriNhap_Chu,
+                                    Diem_Si_DatDuoc = ct.Diem_Si_DatDuoc
+                                }).ToListAsync();
+
+            var idPhieus = lichSu.Select(x => x.ID_Phieu).ToList();
+            var inputRows = await _db.ChiTietKiemTra_Inputs
+                .Where(x => idPhieus.Contains(x.IDPhieu) && x.ID_ChiTieu == idChiTieu)
+                .ToListAsync();
+            if (inputRows.Count == 0) return lichSu;
+
+            var inputDefs = await _db.ChiTieuInputs.Where(x => x.ID_ChiTieu == idChiTieu).ToListAsync();
+            var tenTheoMa = inputDefs.ToDictionary(x => x.MaInput, x => x.TenInput);
+            var defTheoId = inputDefs.ToDictionary(x => x.ID_Input, x => x);
+
+            foreach (var muc in lichSu)
+            {
+                var rows = inputRows.Where(x => x.IDPhieu == muc.ID_Phieu).ToList();
+                if (rows.Count == 0) continue;
+                muc.DanhSachInput = rows.Select(r =>
+                {
+                    var ma = r.MaInput
+                        ?? (r.ID_Input.HasValue && defTheoId.TryGetValue(r.ID_Input.Value, out var def) ? def.MaInput : "?");
+                    tenTheoMa.TryGetValue(ma, out var ten);
+                    return new ChiTietInputValueDto { MaInput = ma, TenInput = ten, GiaTriSo = r.GiaTriSo };
+                }).ToList();
+            }
+
+            return lichSu;
+        }
+
+        /// <summary>Nạp CBM_ChiTietKiemTra_Input (giá trị Input thô, vd T_tren=48) vào DanhSachInput của
+        /// các chỉ tiêu tương ứng trong 1 phiếu.</summary>
+        private async Task GanDanhSachInputAsync<T>(
+            int idPhieu, List<T> chiTiets, Func<T, int> idChiTieuCua, Action<T, List<ChiTietInputValueDto>> ganVao)
+        {
+            var idsChiTieu = chiTiets.Select(idChiTieuCua).Distinct().ToList();
+            if (idsChiTieu.Count == 0) return;
+
+            var inputRows = await _db.ChiTietKiemTra_Inputs
+                .Where(x => x.IDPhieu == idPhieu && idsChiTieu.Contains(x.ID_ChiTieu))
+                .ToListAsync();
+            if (inputRows.Count == 0) return;
+
+            var inputDefs = await _db.ChiTieuInputs.Where(x => idsChiTieu.Contains(x.ID_ChiTieu)).ToListAsync();
+            var tenTheoMa = inputDefs.ToDictionary(x => (x.ID_ChiTieu, x.MaInput), x => x.TenInput);
+            var defTheoId = inputDefs.ToDictionary(x => x.ID_Input, x => x);
+
+            foreach (var ct in chiTiets)
+            {
+                var idChiTieu = idChiTieuCua(ct);
+                var rows = inputRows.Where(x => x.ID_ChiTieu == idChiTieu).ToList();
+                if (rows.Count == 0) continue;
+                var danhSach = rows.Select(r =>
+                {
+                    var ma = r.MaInput
+                        ?? (r.ID_Input.HasValue && defTheoId.TryGetValue(r.ID_Input.Value, out var def) ? def.MaInput : "?");
+                    tenTheoMa.TryGetValue((idChiTieu, ma), out var ten);
+                    return new ChiTietInputValueDto { MaInput = ma, TenInput = ten, GiaTriSo = r.GiaTriSo };
+                }).ToList();
+                ganVao(ct, danhSach);
+            }
         }
 
         public async Task<PhieuKiemTraDto> CreateAsync(CreatePhieuKiemTraDto dto)
