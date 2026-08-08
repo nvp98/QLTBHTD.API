@@ -21,15 +21,19 @@ namespace PM_QLTBHTD.Application.Services
         {
             return from ct in _db.ChiTietKiemTras
                    join c in _db.ChiTieus on ct.ID_ChiTieu equals c.ID_ChiTieu
+                   join n in _db.NhomChiTieus on c.ID_NhomChiTieu equals n.ID_NhomChiTieu
                    select new ChiTietKiemTraDto
                    {
                        ID_ChiTiet = ct.ID_ChiTiet,
                        IDPhieu = ct.IDPhieu,
                        ID_ChiTieu = ct.ID_ChiTieu,
                        TenChiTieu = c.TenChiTieu,
+                       ID_NhomChiTieu = n.ID_NhomChiTieu,
+                       TenNhom = n.TenNhom,
                        GiaTriNhap_So = ct.GiaTriNhap_So,
                        GiaTriNhap_Chu = ct.GiaTriNhap_Chu,
                        Diem_Si_DatDuoc = ct.Diem_Si_DatDuoc,
+                       HanhDongKhuyenCao = ct.HanhDongKhuyenCao,
                        GhiChu = ct.GhiChu
                    };
         }

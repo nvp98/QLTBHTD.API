@@ -23,6 +23,10 @@ namespace PM_QLTBHTD.API.Controllers
         public async Task<IActionResult> GetByChiTieu(int idChiTieu)
             => Ok(await _service.GetByChiTieuAsync(idChiTieu));
 
+        [HttpGet("validate/{idChiTieu}")]
+        public async Task<IActionResult> ValidateGapOverlap(int idChiTieu)
+            => Ok(await _service.ValidateGapOverlapAsync(idChiTieu));
+
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)
         {

@@ -86,6 +86,7 @@ namespace PM_QLTBHTD.Application.Services
 
             var chiTiets = await (from ct in _db.ChiTietKiemTras
                                   join c in _db.ChiTieus on ct.ID_ChiTieu equals c.ID_ChiTieu
+                                  join n in _db.NhomChiTieus on c.ID_NhomChiTieu equals n.ID_NhomChiTieu
                                   where ct.IDPhieu == idPhieu
                                   select new ChiTietKiemTraDto
                                   {
@@ -93,9 +94,12 @@ namespace PM_QLTBHTD.Application.Services
                                       IDPhieu = ct.IDPhieu,
                                       ID_ChiTieu = ct.ID_ChiTieu,
                                       TenChiTieu = c.TenChiTieu ?? string.Empty,
+                                      ID_NhomChiTieu = n.ID_NhomChiTieu,
+                                      TenNhom = n.TenNhom,
                                       GiaTriNhap_So = ct.GiaTriNhap_So,
                                       GiaTriNhap_Chu = ct.GiaTriNhap_Chu,
                                       Diem_Si_DatDuoc = ct.Diem_Si_DatDuoc,
+                                      HanhDongKhuyenCao = ct.HanhDongKhuyenCao,
                                       GhiChu = ct.GhiChu
                                   }).ToListAsync();
 
@@ -127,7 +131,8 @@ namespace PM_QLTBHTD.Application.Services
                                     NgayKiemTra = p.NgayKiemTra,
                                     GiaTriNhap_So = ct.GiaTriNhap_So,
                                     GiaTriNhap_Chu = ct.GiaTriNhap_Chu,
-                                    Diem_Si_DatDuoc = ct.Diem_Si_DatDuoc
+                                    Diem_Si_DatDuoc = ct.Diem_Si_DatDuoc,
+                                    HanhDongKhuyenCao = ct.HanhDongKhuyenCao
                                 }).ToListAsync();
 
             var idPhieus = lichSu.Select(x => x.ID_Phieu).ToList();

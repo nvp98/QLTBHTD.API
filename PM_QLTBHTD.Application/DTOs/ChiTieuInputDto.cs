@@ -6,6 +6,10 @@ namespace PM_QLTBHTD.Application.DTOs
         public int     ID_ChiTieu { get; set; }
         public string  MaInput    { get; set; } = string.Empty;
         public string  TenInput   { get; set; } = string.Empty;
+        public string  NguonGiaTri     { get; set; } = "MANUAL";
+        public int?    ID_ChiTieuNguon { get; set; }
+        public string? TenChiTieuNguon { get; set; }
+        public string? MaThongSoThietBi { get; set; }
     }
 
     public class CreateChiTieuInputDto
@@ -13,6 +17,9 @@ namespace PM_QLTBHTD.Application.DTOs
         public int     ID_ChiTieu { get; set; }
         public string  MaInput    { get; set; } = string.Empty;
         public string  TenInput   { get; set; } = string.Empty;
+        public string  NguonGiaTri     { get; set; } = "MANUAL";
+        public int?    ID_ChiTieuNguon { get; set; }
+        public string? MaThongSoThietBi { get; set; }
     }
 
     public class UpdateChiTieuInputDto
@@ -20,5 +27,8 @@ namespace PM_QLTBHTD.Application.DTOs
         public int     ID_ChiTieu { get; set; }
         public string  MaInput    { get; set; } = string.Empty;
         public string  TenInput   { get; set; } = string.Empty;
+        public string  NguonGiaTri     { get; set; } = "MANUAL";
+        public int?    ID_ChiTieuNguon { get; set; }
+        public string? MaThongSoThietBi { get; set; }
     }
 }

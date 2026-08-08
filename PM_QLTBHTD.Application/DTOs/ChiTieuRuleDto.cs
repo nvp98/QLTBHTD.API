@@ -9,6 +9,7 @@ namespace PM_QLTBHTD.Application.DTOs
         public string  BieuThuc   { get; set; } = string.Empty;
         /// <summary>'BANG_MUC' (mặc định, điều kiện boolean từng mức) hoặc 'CONG_THUC' (biểu thức NCalc số gộp nhiều Si, vd Min(Si_DT1,Si_DT2)).</summary>
         public string  LoaiRule   { get; set; } = "BANG_MUC";
+        public string? HanhDongKhuyenCao { get; set; }
     }
 
     public class CreateChiTieuRuleDto
@@ -18,6 +19,7 @@ namespace PM_QLTBHTD.Application.DTOs
         public decimal Diem_Si    { get; set; }
         public string  BieuThuc   { get; set; } = string.Empty;
         public string  LoaiRule   { get; set; } = "BANG_MUC";
+        public string? HanhDongKhuyenCao { get; set; }
     }
 
     public class UpdateChiTieuRuleDto
@@ -27,5 +29,6 @@ namespace PM_QLTBHTD.Application.DTOs
         public decimal Diem_Si    { get; set; }
         public string  BieuThuc   { get; set; } = string.Empty;
         public string  LoaiRule   { get; set; } = "BANG_MUC";
+        public string? HanhDongKhuyenCao { get; set; }
     }
 }

@@ -23,6 +23,8 @@ builder.Services.AddScoped<INhomChiTieuRepository, NhomChiTieuRepository>();
 builder.Services.AddScoped<IChiTieuRepository, ChiTieuRepository>();
 builder.Services.AddScoped<INguongRepository, NguongRepository>();
 builder.Services.AddScoped<IChiTieuInputRepository, ChiTieuInputRepository>();
+builder.Services.AddScoped<IThietBiThongSoRepository, ThietBiThongSoRepository>();
+builder.Services.AddScoped<IThongSoRepository, ThongSoRepository>();
 builder.Services.AddScoped<IChiTieuRuleRepository, ChiTieuRuleRepository>();
 builder.Services.AddScoped<IChiTieuFormulaRepository, ChiTieuFormulaRepository>();
 builder.Services.AddScoped<IChiTieuFormulaThamSoRepository, ChiTieuFormulaThamSoRepository>();
@@ -31,6 +33,8 @@ builder.Services.AddScoped<IChiTieuFormulaThamSoRepository, ChiTieuFormulaThamSo
 builder.Services.AddScoped<ICongThucTongHopRepository, CongThucTongHopRepository>();
 builder.Services.AddScoped<ICongThucBienRepository, CongThucBienRepository>();
 builder.Services.AddScoped<IKetQuaNhomRepository, KetQuaNhomRepository>();
+builder.Services.AddScoped<IKetQuaTrungGianRepository, KetQuaTrungGianRepository>();
+builder.Services.AddScoped<ICongThucTestCaseRepository, CongThucTestCaseRepository>();
 
 // Repositories — phiếu kiểm tra
 builder.Services.AddScoped<IPhieuKiemTraRepository, PhieuKiemTraRepository>();
@@ -53,6 +57,8 @@ builder.Services.AddScoped<IChiTieuService, ChiTieuService>();
 builder.Services.AddScoped<INguongService, NguongService>();
 builder.Services.AddScoped<INguongScoringService, NguongScoringService>();
 builder.Services.AddScoped<IChiTieuInputService, ChiTieuInputService>();
+builder.Services.AddScoped<IThietBiThongSoService, ThietBiThongSoService>();
+builder.Services.AddScoped<IThongSoService, ThongSoService>();
 builder.Services.AddScoped<IChiTieuRuleService, ChiTieuRuleService>();
 builder.Services.AddScoped<IChiTieuFormulaService, ChiTieuFormulaService>();
 builder.Services.AddScoped<IChiTieuFormulaThamSoService, ChiTieuFormulaThamSoService>();
@@ -63,6 +69,8 @@ builder.Services.AddScoped<IChiTieuPhanLoaiNguongService, ChiTieuPhanLoaiNguongS
 // Services — công thức tổng hợp
 builder.Services.AddScoped<ICongThucTongHopService, CongThucTongHopService>();
 builder.Services.AddScoped<ICongThucBienService, CongThucBienService>();
+builder.Services.AddScoped<ICongThucTestCaseService, CongThucTestCaseService>();
+builder.Services.AddScoped<ILichSuService, LichSuService>();
 
 // Services — phiếu kiểm tra & scoring
 builder.Services.AddScoped<IPhieuKiemTraService, PhieuKiemTraService>();

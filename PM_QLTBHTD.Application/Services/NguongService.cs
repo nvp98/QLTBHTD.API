@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using PM_QLTBHTD.Application.DTOs;
+using PM_QLTBHTD.Application.Helpers;
 using PM_QLTBHTD.Application.Interfaces;
 using PM_QLTBHTD.Domain.Entities;
 using PM_QLTBHTD.Domain.IRepository;
@@ -33,6 +34,7 @@ namespace PM_QLTBHTD.Application.Services
                        CanTren_BaoGom = ng.CanTren_BaoGom,
                        BieuThuc_Logic = ng.BieuThuc_Logic,
                        MaKetQua       = ng.MaKetQua,
+                       HanhDongKhuyenCao = ng.HanhDongKhuyenCao,
                    };
         }
 
@@ -67,6 +69,7 @@ namespace PM_QLTBHTD.Application.Services
                 CanTren_BaoGom = dto.CanTren_BaoGom,
                 BieuThuc_Logic = dto.BieuThuc_Logic,
                 MaKetQua       = dto.MaKetQua,
+                HanhDongKhuyenCao = dto.HanhDongKhuyenCao,
             };
             await _repository.AddAsync(entity);
             await _repository.SaveChangesAsync();
@@ -86,6 +89,7 @@ namespace PM_QLTBHTD.Application.Services
             entity.CanTren_BaoGom = dto.CanTren_BaoGom;
             entity.BieuThuc_Logic = dto.BieuThuc_Logic;
             entity.MaKetQua       = dto.MaKetQua;
+            entity.HanhDongKhuyenCao = dto.HanhDongKhuyenCao;
 
             _repository.Update(entity);
             await _repository.SaveChangesAsync();
@@ -102,5 +106,10 @@ namespace PM_QLTBHTD.Application.Services
             return true;
         }
 
+        public async Task<List<NguongValidationIssue>> ValidateGapOverlapAsync(int idChiTieu)
+        {
+            var nguongs = await _db.Nguongs.Where(n => n.ID_ChiTieu == idChiTieu).ToListAsync();
+            return NguongValidator.KiemTraGapOverlap(nguongs);
+        }
     }
 }

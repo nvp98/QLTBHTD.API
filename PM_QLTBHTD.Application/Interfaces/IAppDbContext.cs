@@ -12,6 +12,8 @@ namespace PM_QLTBHTD.Application.Interfaces
         IQueryable<CBM_LoaiThietBi> LoaiThietBis { get; }
         IQueryable<CBM_TramDien> TramDiens { get; }
         IQueryable<CBM_ThietBi> ThietBis { get; }
+        IQueryable<CBM_ThongSo> ThongSos { get; }
+        IQueryable<CBM_ThietBi_ThongSo> ThietBiThongSos { get; }
 
         // Chỉ tiêu đánh giá
         IQueryable<CBM_NhomChiTieu> NhomChiTieus { get; }
@@ -26,6 +28,7 @@ namespace PM_QLTBHTD.Application.Interfaces
         IQueryable<CBM_CongThucTongHop> CongThucTongHops { get; }
         IQueryable<CBM_CongThuc_Bien> CongThucBiens { get; }
         IQueryable<CBM_KetQuaNhom> KetQuaNhoms { get; }
+        IQueryable<CBM_KetQuaTrungGian> KetQuaTrungGians { get; }
 
         // Phiếu kiểm tra
         IQueryable<PhieuKiemTra> PhieuKiemTras { get; }

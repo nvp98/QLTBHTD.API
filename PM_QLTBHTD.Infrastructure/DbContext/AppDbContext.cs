@@ -16,6 +16,8 @@ namespace PM_QLTBHTD.Infrastructure.Persistence
         public DbSet<CBM_LoaiThietBi> CBM_LoaiThietBi { get; set; }
         public DbSet<CBM_TramDien> CBM_TramDien { get; set; }
         public DbSet<CBM_ThietBi> CBM_ThietBi { get; set; }
+        public DbSet<CBM_ThongSo> CBM_ThongSo { get; set; }
+        public DbSet<CBM_ThietBi_ThongSo> CBM_ThietBi_ThongSo { get; set; }
 
         // Chỉ tiêu đánh giá
         public DbSet<CBM_NhomChiTieu> CBM_NhomChiTieu { get; set; }
@@ -30,6 +32,8 @@ namespace PM_QLTBHTD.Infrastructure.Persistence
         public DbSet<CBM_CongThucTongHop> CBM_CongThucTongHop { get; set; }
         public DbSet<CBM_CongThuc_Bien> CBM_CongThuc_Bien { get; set; }
         public DbSet<CBM_KetQuaNhom> CBM_KetQuaNhom { get; set; }
+        public DbSet<CBM_KetQuaTrungGian> CBM_KetQuaTrungGian { get; set; }
+        public DbSet<CBM_CongThuc_TestCase> CBM_CongThuc_TestCase { get; set; }
 
         // Phiếu kiểm tra
         public DbSet<PhieuKiemTra> PhieuKiemTra { get; set; }
@@ -70,6 +74,8 @@ namespace PM_QLTBHTD.Infrastructure.Persistence
         IQueryable<CBM_LoaiThietBi> IAppDbContext.LoaiThietBis => CBM_LoaiThietBi.AsQueryable();
         IQueryable<CBM_TramDien> IAppDbContext.TramDiens => CBM_TramDien.AsQueryable();
         IQueryable<CBM_ThietBi> IAppDbContext.ThietBis => CBM_ThietBi.AsQueryable();
+        IQueryable<CBM_ThongSo> IAppDbContext.ThongSos => CBM_ThongSo.AsQueryable();
+        IQueryable<CBM_ThietBi_ThongSo> IAppDbContext.ThietBiThongSos => CBM_ThietBi_ThongSo.AsQueryable();
         IQueryable<CBM_NhomChiTieu> IAppDbContext.NhomChiTieus => CBM_NhomChiTieu.AsQueryable();
         IQueryable<CBM_ChiTieu> IAppDbContext.ChiTieus => CBM_ChiTieu.AsQueryable();
         IQueryable<CBM_Nguong> IAppDbContext.Nguongs => CBM_Nguong.AsQueryable();
@@ -80,6 +86,7 @@ namespace PM_QLTBHTD.Infrastructure.Persistence
         IQueryable<CBM_CongThucTongHop> IAppDbContext.CongThucTongHops => CBM_CongThucTongHop.AsQueryable();
         IQueryable<CBM_CongThuc_Bien> IAppDbContext.CongThucBiens => CBM_CongThuc_Bien.AsQueryable();
         IQueryable<CBM_KetQuaNhom> IAppDbContext.KetQuaNhoms => CBM_KetQuaNhom.AsQueryable();
+        IQueryable<CBM_KetQuaTrungGian> IAppDbContext.KetQuaTrungGians => CBM_KetQuaTrungGian.AsQueryable();
         IQueryable<PhieuKiemTra> IAppDbContext.PhieuKiemTras => PhieuKiemTra.AsQueryable();
         IQueryable<ChiTietKiemTra> IAppDbContext.ChiTietKiemTras => ChiTietKiemTra.AsQueryable();
         IQueryable<ChiTietKiemTra_Input> IAppDbContext.ChiTietKiemTra_Inputs => ChiTietKiemTra_Input.AsQueryable();

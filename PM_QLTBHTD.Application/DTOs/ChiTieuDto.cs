@@ -10,6 +10,7 @@ namespace PM_QLTBHTD.Application.DTOs
         public decimal? TrongSo_Wi     { get; set; }
         public int      TrangThai      { get; set; }
         public string?  LoaiTinhDiem   { get; set; }
+        public decimal? GiaTri_L1      { get; set; }
     }
 
     public class CreateChiTieuDto
@@ -19,6 +20,7 @@ namespace PM_QLTBHTD.Application.DTOs
         public decimal? TrongSo_Wi     { get; set; }
         public int      TrangThai      { get; set; } = 1;
         public string?  LoaiTinhDiem   { get; set; }
+        public decimal? GiaTri_L1      { get; set; }
     }
 
     public class UpdateChiTieuDto
@@ -28,5 +30,6 @@ namespace PM_QLTBHTD.Application.DTOs
         public decimal? TrongSo_Wi     { get; set; }
         public int      TrangThai      { get; set; }
         public string?  LoaiTinhDiem   { get; set; }
+        public decimal? GiaTri_L1      { get; set; }
     }
 }

@@ -18,6 +18,9 @@ namespace PM_QLTBHTD.Domain.Entities
         /// (vd 'Min(Si_DT1, Si_DT2)'), dùng để gộp Si của nhiều Formula/Threshold trong cùng Chỉ tiêu.
         /// </summary>
         public string LoaiRule { get; set; } = "BANG_MUC";
+
+        /// <summary>Hành động khuyến cáo khi chỉ tiêu rơi vào mức này (VD "Tách MBA khỏi vận hành").</summary>
+        public string? HanhDongKhuyenCao { get; set; }
     }
 
 }

@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using PM_QLTBHTD.Application.DTOs;
+using PM_QLTBHTD.Application.Helpers;
 using PM_QLTBHTD.Application.Interfaces;
 using PM_QLTBHTD.Domain.Entities;
 using PM_QLTBHTD.Domain.IRepository;
@@ -110,6 +111,24 @@ namespace PM_QLTBHTD.Application.Services
             _repo.Delete(entity);
             await _repo.SaveChangesAsync();
             return true;
+        }
+
+        /// <summary>Config Validator mục 3.2 — quét TOÀN BỘ cây công thức của 1 loại thiết bị,
+        /// tìm vòng lặp tham chiếu bất kỳ (không chỉ lúc lưu 1 cạnh mới).</summary>
+        public async Task<VongLapKetQua> ValidateVongLapAsync(int idLoaiThietBi)
+        {
+            var canh = await (
+                from ct in _db.CongThucTongHops
+                where ct.TrangThai == 1
+                join nh in _db.NhomChiTieus on ct.ID_NhomChiTieu equals nh.ID_NhomChiTieu
+                where nh.ID_LoaiThietBi == idLoaiThietBi
+                join b in _db.CongThucBiens on ct.ID_CongThuc equals b.ID_CongThuc
+                where b.NguonBien == "NHOM_CON" && b.ID_NhomCon != null
+                select new { Tu = ct.ID_NhomChiTieu, Den = b.ID_NhomCon!.Value }
+            ).ToListAsync();
+
+            var canhTheoTu = canh.GroupBy(x => x.Tu).ToDictionary(g => g.Key, g => g.Select(x => x.Den).ToList());
+            return CongThucValidator.TimVongLap(canhTheoTu);
         }
 
         private async Task<List<CongThucBienDto>> GetBienAsync(int idCongThuc)

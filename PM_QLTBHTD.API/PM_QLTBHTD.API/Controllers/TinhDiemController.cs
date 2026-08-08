@@ -10,10 +10,12 @@ namespace PM_QLTBHTD.API.Controllers
     public class TinhDiemController : ControllerBase
     {
         private readonly IScoringEngine _engine;
+        private readonly IChiTieuScoringService _scoringService;
 
-        public TinhDiemController(IScoringEngine engine)
+        public TinhDiemController(IScoringEngine engine, IChiTieuScoringService scoringService)
         {
             _engine = engine;
+            _scoringService = scoringService;
         }
 
         /// <summary>
@@ -51,6 +53,27 @@ namespace PM_QLTBHTD.API.Controllers
         {
             try
             {
+                var diem = await _engine.TinhVaLuuTongDiemAsync(idPhieu, ct);
+                return Ok(new { IDPhieu = idPhieu, TongDiem_Soqt = diem });
+            }
+            catch (NhieuNhomGocException ex)
+            {
+                return UnprocessableEntity(new { Error = ex.Message, ex.IdLoaiThietBi, ex.SoLuongGoc });
+            }
+        }
+
+        /// <summary>
+        /// Tính lại Sᵢ + khuyến cáo hành động cho TẤT CẢ chỉ tiêu đã có dữ liệu trong phiếu (dùng dữ liệu
+        /// đã lưu, không cần nhập lại), rồi tính lại CSSK tổng luôn. Khác "tinh-tong-diem": endpoint đó
+        /// chỉ gộp lại từ Sᵢ CŨ đã lưu — không tính lại Sᵢ, nên không phản ánh cấu hình Rule/Formula/Ngưỡng
+        /// vừa sửa. Dùng endpoint này sau khi sửa cấu hình tính điểm để "làm mới" 1 phiếu đã tồn tại.
+        /// </summary>
+        [HttpPost("tinh-lai-si/{idPhieu}")]
+        public async Task<IActionResult> TinhLaiSi(int idPhieu, CancellationToken ct)
+        {
+            try
+            {
+                await _scoringService.TinhLaiToanBoSiAsync(idPhieu, ct);
                 var diem = await _engine.TinhVaLuuTongDiemAsync(idPhieu, ct);
                 return Ok(new { IDPhieu = idPhieu, TongDiem_Soqt = diem });
             }

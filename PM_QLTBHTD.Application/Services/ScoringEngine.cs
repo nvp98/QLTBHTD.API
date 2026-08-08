@@ -16,12 +16,16 @@ namespace PM_QLTBHTD.Application.Services
         private readonly IAppDbContext _db;
         private readonly IKetQuaNhomRepository _ketQuaRepo;
         private readonly IPhieuKiemTraRepository _phieuRepo;
+        private readonly IKetQuaTrungGianRepository _trungGianRepo;
 
-        public ScoringEngine(IAppDbContext db, IKetQuaNhomRepository ketQuaRepo, IPhieuKiemTraRepository phieuRepo)
+        public ScoringEngine(
+            IAppDbContext db, IKetQuaNhomRepository ketQuaRepo, IPhieuKiemTraRepository phieuRepo,
+            IKetQuaTrungGianRepository trungGianRepo)
         {
             _db = db;
             _ketQuaRepo = ketQuaRepo;
             _phieuRepo = phieuRepo;
+            _trungGianRepo = trungGianRepo;
         }
 
         public async Task<decimal> TinhDiemNhomAsync(int idNhomChiTieu, int idPhieu, CancellationToken ct = default)
@@ -91,9 +95,12 @@ namespace PM_QLTBHTD.Application.Services
             {
                 diem = await TinhDiemNhomAsync(idNhomGoc.Value, idPhieu, ct);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
                 // Thiếu công thức/dữ liệu ở đâu đó trong cây (cây đang xây dở) — coi là "chưa tính được".
+                // Log lại để còn tra được lý do thay vì im lặng hoàn toàn khi CSSK tổng không ra.
+                Console.Error.WriteLine(
+                    $"[ScoringEngine] Không tính được CSSK tổng cho phiếu ID={idPhieu} (nhóm gốc ID={idNhomGoc}): {ex.GetType().Name} - {ex.Message}");
                 return null;
             }
 
@@ -155,7 +162,11 @@ namespace PM_QLTBHTD.Application.Services
 
                 if (weightedSi.Count == 0)
                 {
-                    diem = 0m;
+                    // Trước đây mặc định diem=0 (điểm tệ nhất) khi nhóm chưa có chỉ tiêu nào đo được —
+                    // khiến "thiếu dữ liệu" trông giống hệt "Nguy hiểm" ở CSSK tổng. Ném lỗi để lan lên
+                    // thành "chưa tính được" (null), nhất quán với các trường hợp thiếu dữ liệu khác
+                    // trong cây (vd LayDiemChiTieuAsync khi biến COMPOSITE tham chiếu 1 chỉ tiêu chưa đo).
+                    throw new ThieuDuLieuNhomChiTieuException(idNhomChiTieu);
                 }
                 else
                 {
@@ -221,6 +232,16 @@ namespace PM_QLTBHTD.Application.Services
                     // người dùng gõ tay hệ số vào cả tử và mẫu của biểu thức rồi quên đồng bộ 2 bên.
                     diem = TinhTrungBinhCoTrongSo(weightedValues, scale10: congThuc.LoaiCongThuc == "WEIGHTED_AVG_SCALED");
                 }
+                else if (congThuc.LoaiCongThuc == "MIN_BIEN")
+                {
+                    // Lấy giá trị NHỎ NHẤT trong toàn bộ biến đã khai (CBM_CongThuc_Bien) — KHÔNG
+                    // evaluate BieuThuc, giống cơ chế WEIGHTED_AVG*. Dùng cho công thức kiểu "Sm = MIN
+                    // của nhiều bộ phận" (Bảng 22 QT.40) — thêm/bớt bộ phận chỉ cần sửa danh sách biến,
+                    // không phải viết lại chuỗi Min(a,Min(b,Min(c,...))) lồng nhau bằng tay.
+                    if (bindValues.Count == 0)
+                        throw new CongThucKhongTonTaiException(idNhomChiTieu);
+                    diem = (decimal)bindValues.Values.Min();
+                }
                 else
                 {
                     var expr = new Expression(congThuc.BieuThuc);
@@ -237,6 +258,18 @@ namespace PM_QLTBHTD.Application.Services
                     diem = congThuc.ThangDiem_Max.Value;
 
                 bienDaBind = JsonSerializer.Serialize(bindValues);
+
+                // Audit trail (BusinessResult): mỗi biến NCalc đã bind (vd Sc/St/Sr trong Sdga=Sc·St·Sr)
+                // ghi thành 1 dòng riêng, TRUY VẾT ĐƯỢC qua CBM_KetQuaTrungGian — không chỉ nằm trong
+                // JSON blob BienDaBind (vẫn giữ song song để không phá tương thích ngược).
+                await _trungGianRepo.AddRangeAsync(bindValues.Select(kv => new CBM_KetQuaTrungGian
+                {
+                    IDPhieu = idPhieu,
+                    LoaiPham = "NHOM",
+                    ID_Pham = idNhomChiTieu,
+                    MaKetQua = kv.Key,
+                    GiaTri = (decimal)kv.Value,
+                }));
             }
 
             // Ghi cache
@@ -248,6 +281,7 @@ namespace PM_QLTBHTD.Application.Services
                 BienDaBind = bienDaBind,
                 ThoiGianTinh = DateTime.UtcNow
             });
+            await _trungGianRepo.SaveChangesAsync();
             await _ketQuaRepo.SaveChangesAsync();
 
             return diem;

@@ -33,6 +33,10 @@ namespace PM_QLTBHTD.API.Controllers
             return item == null ? NotFound() : Ok(item);
         }
 
+        [HttpGet("validate-vong-lap/{idLoaiThietBi}")]
+        public async Task<IActionResult> ValidateVongLap(int idLoaiThietBi)
+            => Ok(await _service.ValidateVongLapAsync(idLoaiThietBi));
+
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreateCongThucTongHopDto dto)
         {

@@ -18,6 +18,7 @@ namespace PM_QLTBHTD.Application.Services
         private readonly IChiTietKiemTraRepository _chiTietRepo;
         private readonly IChiTietKiemTraInputRepository _inputRepo;
         private readonly IKetQuaPhanLoaiThangRepository _phanLoaiThangRepo;
+        private readonly IKetQuaTrungGianRepository _trungGianRepo;
         private readonly IFormulaEngine _formulaEngine;
 
         public ChiTieuScoringService(
@@ -25,13 +26,32 @@ namespace PM_QLTBHTD.Application.Services
             IChiTietKiemTraRepository chiTietRepo,
             IChiTietKiemTraInputRepository inputRepo,
             IKetQuaPhanLoaiThangRepository phanLoaiThangRepo,
+            IKetQuaTrungGianRepository trungGianRepo,
             IFormulaEngine formulaEngine)
         {
             _db = db;
             _chiTietRepo = chiTietRepo;
             _inputRepo = inputRepo;
             _phanLoaiThangRepo = phanLoaiThangRepo;
+            _trungGianRepo = trungGianRepo;
             _formulaEngine = formulaEngine;
+        }
+
+        /// <summary>Gộp 1 dòng vào batch ghi CBM_KetQuaTrungGian (audit trail) — commit chung 1 lần
+        /// SaveChangesAsync cuối TinhVaLuuDiemSiAsync (cùng DbContext scoped với các repo khác).</summary>
+        private static void GhiTrungGian(
+            List<CBM_KetQuaTrungGian> sink, int idPhieu, int idChiTieu, string maKetQua, decimal? giaTri, string? nhan = null)
+        {
+            if (giaTri is null) return; // không ghi "chưa tính được" — tránh rác audit vô nghĩa
+            sink.Add(new CBM_KetQuaTrungGian
+            {
+                IDPhieu = idPhieu,
+                LoaiPham = "CHITIEU",
+                ID_Pham = idChiTieu,
+                MaKetQua = maKetQua,
+                GiaTri = giaTri,
+                Nhan = nhan,
+            });
         }
 
         public async Task TinhVaLuuDiemSiAsync(
@@ -39,7 +59,16 @@ namespace PM_QLTBHTD.Application.Services
             IEnumerable<NhapChiTietKiemTraDto> danhSachNhap,
             CancellationToken ct = default)
         {
-            foreach (var nhap in danhSachNhap)
+            var danhSachNhapList = danhSachNhap as IList<NhapChiTietKiemTraDto> ?? danhSachNhap.ToList();
+            // Dùng cho LoaiTinhDiem='TDCG' — cho phép chỉ tiêu thành phần trong CÙNG batch đang nhập
+            // (chưa kịp lưu DB) vẫn đọc được, thay vì phải nhập/lưu riêng từng chỉ tiêu rồi mới tính TDCG.
+            var giaTriTrongBatch = danhSachNhapList
+                .GroupBy(x => x.ID_ChiTieu)
+                .ToDictionary(g => g.Key, g => g.Last().GiaTriNhap_So);
+
+            var trungGianCanGhi = new List<CBM_KetQuaTrungGian>();
+
+            foreach (var nhap in danhSachNhapList)
             {
                 var idChiTieu = nhap.ID_ChiTieu;
 
@@ -60,58 +89,112 @@ namespace PM_QLTBHTD.Application.Services
 
                 decimal? giaTriHienThi = nhap.GiaTriNhap_So;
                 decimal? diemSi;
+                string? hanhDongKhuyenCao;
 
                 var chiTieuInputs = await _db.ChiTieuInputs
                     .Where(x => x.ID_ChiTieu == idChiTieu)
                     .ToListAsync(ct);
 
-                if (loaiTinhDiem == "Rule" && chiTieuInputs.Count > 0)
+                try
                 {
-                    diemSi = await TinhDiemRuleAsync(idPhieu, idChiTieu, chiTieuInputs, nhap.DanhSachInput, ct);
-                }
-                else if (loaiTinhDiem == "LF")
-                {
-                    var phieuInfo = await _db.PhieuKiemTras
-                        .Where(p => p.ID_Phieu == idPhieu)
-                        .Select(p => new { p.ID_ThietBi, p.NgayKiemTra })
-                        .FirstAsync(ct);
-
-                    var (_, si) = await TinhDiemLFAsync(
-                        idPhieu, phieuInfo.ID_ThietBi, phieuInfo.NgayKiemTra, idChiTieu, nhap.GiaTriNhap_So, ct);
-                    diemSi = si;
-                }
-                else
-                {
-                    if (chiTieuInputs.Count == 0)
+                    if (loaiTinhDiem == "Rule" && chiTieuInputs.Count > 0)
                     {
-                        diemSi = await TinhDiemDonAsync(idChiTieu, nhap.GiaTriNhap_So, ct);
+                        (diemSi, hanhDongKhuyenCao) = await TinhDiemRuleAsync(
+                            idPhieu, idChiTieu, chiTieuInputs, nhap.DanhSachInput, giaTriTrongBatch, ct);
+                    }
+                    else if (loaiTinhDiem == "LF")
+                    {
+                        var phieuInfo = await _db.PhieuKiemTras
+                            .Where(p => p.ID_Phieu == idPhieu)
+                            .Select(p => new { p.ID_ThietBi, p.NgayKiemTra })
+                            .FirstAsync(ct);
+
+                        var (lf, si, hanhDong) = await TinhDiemLFAsync(
+                            idPhieu, phieuInfo.ID_ThietBi, phieuInfo.NgayKiemTra, idChiTieu, nhap.GiaTriNhap_So, ct);
+                        diemSi = si;
+                        hanhDongKhuyenCao = hanhDong;
+                        GhiTrungGian(trungGianCanGhi, idPhieu, idChiTieu, "LF", lf, "Tỉ lệ mang tải bình quân trượt 12 tháng");
+                    }
+                    else if (loaiTinhDiem == "TOC_DO_SINH_KHI")
+                    {
+                        var phieuInfo = await _db.PhieuKiemTras
+                            .Where(p => p.ID_Phieu == idPhieu)
+                            .Select(p => new { p.ID_ThietBi, p.NgayKiemTra })
+                            .FirstAsync(ct);
+
+                        var (phanTramNam, si, hanhDong) = await TinhDiemTocDoSinhKhiAsync(
+                            idPhieu, phieuInfo.ID_ThietBi, phieuInfo.NgayKiemTra, idChiTieu, nhap.GiaTriNhap_So, ct);
+                        diemSi = si;
+                        hanhDongKhuyenCao = hanhDong;
+                        GhiTrungGian(trungGianCanGhi, idPhieu, idChiTieu, "TOC_DO_SINH_KHI", phanTramNam, "% tốc độ sinh khí/năm, đã quy đổi theo số ngày thực tế");
                     }
                     else
                     {
-                        var vars = XayDungVars(idChiTieu, chiTieuInputs, nhap.DanhSachInput);
-                        await LuuInputsAsync(idPhieu, idChiTieu, vars);
+                        if (chiTieuInputs.Count == 0)
+                        {
+                            (diemSi, hanhDongKhuyenCao) = await TinhDiemDonAsync(idChiTieu, nhap.GiaTriNhap_So, ct);
+                        }
+                        else
+                        {
+                            // Mỗi biến Input tự chọn nguồn (NguonGiaTri): 'MANUAL' — người dùng nhập tay
+                            // (hành vi cũ), hoặc 'CHITIEU_CUNG_PHIEU' — tự lấy GiaTriNhap_So của 1 chỉ
+                            // tiêu khác trong CÙNG phiếu (vd TDCG lấy từ 6 chỉ tiêu khí thành phần).
+                            // Nhờ vậy 1 chỉ tiêu "tự tính từ chỉ tiêu khác" cấu hình HOÀN TOÀN qua UI
+                            // (Input nguồn + Formula NCalc + Ngưỡng theo MaKetQua), không cần thêm
+                            // LoaiTinhDiem/code C# riêng mỗi khi phát sinh nhu cầu tương tự.
+                            var vars = await XayDungVarsAsync(idPhieu, idChiTieu, chiTieuInputs, nhap.DanhSachInput, giaTriTrongBatch, ct);
+                            if (vars is null)
+                            {
+                                // Thiếu giá trị của 1 biến nguồn 'CHITIEU_CUNG_PHIEU' (chỉ tiêu nguồn
+                                // chưa đo trong phiếu này) — chưa đủ dữ liệu, không phải lỗi cấu hình.
+                                diemSi = null;
+                                hanhDongKhuyenCao = null;
+                            }
+                            else
+                            {
+                                await LuuInputsAsync(idPhieu, idChiTieu, vars);
 
-                        // Chỉ tiêu có cấu hình Formula (CBM_ChiTieu_Formula): Input → Formula (giá trị
-                        // trung gian) → Threshold theo MaKetQua → Rule (gộp nhiều Si nếu có nhiều Formula).
-                        // Không có Formula nào → giữ nguyên hành vi cũ (Threshold đa biến trực tiếp trên Input).
-                        var idThietBiCuaPhieu = await _db.PhieuKiemTras
-                            .Where(p => p.ID_Phieu == idPhieu)
-                            .Select(p => p.ID_ThietBi)
-                            .FirstAsync(ct);
+                                // Chỉ tiêu có cấu hình Formula (CBM_ChiTieu_Formula): Input → Formula (giá trị
+                                // trung gian) → Threshold theo MaKetQua → Rule (gộp nhiều Si nếu có nhiều Formula).
+                                // Không có Formula nào → giữ nguyên hành vi cũ (Threshold đa biến trực tiếp trên Input).
+                                var idThietBiCuaPhieu = await _db.PhieuKiemTras
+                                    .Where(p => p.ID_Phieu == idPhieu)
+                                    .Select(p => p.ID_ThietBi)
+                                    .FirstAsync(ct);
 
-                        var ketQuaFormula = await _formulaEngine.EvaluateAllAsync(
-                            idChiTieu, idPhieu, idThietBiCuaPhieu, vars, ct);
+                                var ketQuaFormula = await _formulaEngine.EvaluateAllAsync(
+                                    idChiTieu, idPhieu, idThietBiCuaPhieu, vars, ct);
 
-                        diemSi = ketQuaFormula.Count > 0
-                            ? await TinhDiemTuFormulaAsync(idChiTieu, ketQuaFormula, ct)
-                            : await TinhDiemNhieuBienAsync(idChiTieu, vars, ct);
+                                // Ghi lại từng kết quả Formula trung gian (vd DT1/DT2/TDCG) — đây chính
+                                // là giá trị "không phải Sᵢ nhưng vẫn cần truy vết" theo yêu cầu audit.
+                                foreach (var (maKetQua, giaTri) in ketQuaFormula)
+                                    GhiTrungGian(trungGianCanGhi, idPhieu, idChiTieu, maKetQua, giaTri);
+
+                                (diemSi, hanhDongKhuyenCao) = ketQuaFormula.Count > 0
+                                    ? await TinhDiemTuFormulaAsync(idChiTieu, ketQuaFormula, ct)
+                                    : await TinhDiemNhieuBienAsync(idChiTieu, vars, ct);
+                            }
+                        }
                     }
+                }
+                catch (Exception ex)
+                {
+                    // Không để 1 chỉ tiêu lỗi cấu hình (thiếu Input, thiếu BieuThuc_Logic, lỗi cú pháp
+                    // Formula/Rule...) làm mất hết chi tiết của CẢ phiếu — SaveChangesAsync chỉ gọi 1 lần
+                    // sau vòng lặp nên nếu không bắt ở đây, phiếu vẫn được tạo (đã lưu trước đó ở
+                    // PhieuKiemTraService) nhưng KHÔNG có chi tiết nào được lưu. Ghi Si=null cho riêng
+                    // chỉ tiêu này, giữ nguyên giá trị nhập thô, và tiếp tục các chỉ tiêu còn lại.
+                    Console.Error.WriteLine(
+                        $"[ChiTieuScoringService] Lỗi tính Si cho chỉ tiêu ID={idChiTieu} (phiếu ID={idPhieu}): {ex.GetType().Name} - {ex.Message}");
+                    diemSi = null;
+                    hanhDongKhuyenCao = null;
                 }
 
                 chiTiet.GiaTriNhap_So = giaTriHienThi;
                 chiTiet.GiaTriNhap_Chu = nhap.GiaTriNhap_Chu;
                 chiTiet.GhiChu = nhap.GhiChu;
                 chiTiet.Diem_Si_DatDuoc = diemSi;
+                chiTiet.HanhDongKhuyenCao = hanhDongKhuyenCao;
 
                 if (isNew)
                     await _chiTietRepo.AddAsync(chiTiet);
@@ -119,7 +202,37 @@ namespace PM_QLTBHTD.Application.Services
                     _chiTietRepo.Update(chiTiet);
             }
 
+            if (trungGianCanGhi.Count > 0)
+                await _trungGianRepo.AddRangeAsync(trungGianCanGhi);
+
             await _chiTietRepo.SaveChangesAsync();
+        }
+
+        public async Task TinhLaiToanBoSiAsync(int idPhieu, CancellationToken ct = default)
+        {
+            var chiTiets = await _db.ChiTietKiemTras
+                .Where(x => x.IDPhieu == idPhieu)
+                .Select(x => new { x.ID_ChiTieu, x.GiaTriNhap_So, x.GiaTriNhap_Chu, x.GhiChu })
+                .ToListAsync(ct);
+
+            if (chiTiets.Count == 0) return;
+
+            var inputRows = await _inputRepo.FindAsync(x => x.IDPhieu == idPhieu);
+            var inputsByChiTieu = inputRows
+                .Where(x => x.MaInput is not null)
+                .GroupBy(x => x.ID_ChiTieu)
+                .ToDictionary(g => g.Key, g => g.ToDictionary(x => x.MaInput!, x => x.GiaTriSo));
+
+            var danhSachNhap = chiTiets.Select(c => new NhapChiTietKiemTraDto
+            {
+                ID_ChiTieu = c.ID_ChiTieu,
+                GiaTriNhap_So = c.GiaTriNhap_So,
+                GiaTriNhap_Chu = c.GiaTriNhap_Chu,
+                GhiChu = c.GhiChu,
+                DanhSachInput = inputsByChiTieu.TryGetValue(c.ID_ChiTieu, out var vars) && vars.Count > 0 ? vars : null,
+            }).ToList();
+
+            await TinhVaLuuDiemSiAsync(idPhieu, danhSachNhap, ct);
         }
 
         /// <summary>
@@ -127,18 +240,18 @@ namespace PM_QLTBHTD.Application.Services
         /// khớp đầu tiên theo Diem_Si giảm dần thắng. Trước đây chỉ có ở PhieuKiemTraService.CreateAsync;
         /// chuyển vào đây để CreateAsync có thể delegate toàn bộ việc tính Si qua service này.
         /// </summary>
-        private async Task<decimal?> TinhDiemRuleAsync(
+        private async Task<(decimal? Si, string? HanhDong)> TinhDiemRuleAsync(
             int idPhieu, int idChiTieu, List<CBM_ChiTieu_Input> chiTieuInputs,
-            Dictionary<string, decimal>? danhSachInput, CancellationToken ct)
+            Dictionary<string, decimal>? danhSachInput,
+            IReadOnlyDictionary<int, decimal?> giaTriTrongBatch, CancellationToken ct)
         {
-            var vars = new Dictionary<string, decimal>();
-            foreach (var def in chiTieuInputs)
-            {
-                if (danhSachInput != null && danhSachInput.TryGetValue(def.MaInput, out var val))
-                    vars[def.MaInput] = val;
-            }
-
-            if (vars.Count == 0) return null;
+            // Dùng chung XayDungVarsAsync với nhánh Formula phía dưới — trước đây hàm này tự đọc
+            // thẳng danhSachInput (chỉ hỗ trợ nhập tay), bỏ qua hoàn toàn NguonGiaTri='CHITIEU_CUNG_PHIEU'
+            // /'THIETBI_THONGSO' của từng biến, khiến các biến đó luôn bị NCalc coi là 0 một cách âm
+            // thầm (không lỗi, sai kết quả) — bug thật phát hiện qua phiếu thật (chỉ tiêu Dòng động cơ
+            // OLTC, biến Ir nguồn THIETBI_THONGSO luôn ra Sᵢ=0 dù giá trị đo thực tế tốt).
+            var vars = await XayDungVarsAsync(idPhieu, idChiTieu, chiTieuInputs, danhSachInput, giaTriTrongBatch, ct);
+            if (vars is null || vars.Count == 0) return (null, null);
             await LuuInputsAsync(idPhieu, idChiTieu, vars);
 
             var rules = await _db.ChiTieuRules
@@ -149,13 +262,13 @@ namespace PM_QLTBHTD.Application.Services
             foreach (var rule in rules)
             {
                 if (NguongEvaluator.EvalNCalc(rule.BieuThuc, vars))
-                    return rule.Diem_Si;
+                    return (rule.Diem_Si, rule.HanhDongKhuyenCao);
             }
 
-            return null;
+            return (null, null);
         }
 
-        private async Task<decimal?> TinhDiemDonAsync(int idChiTieu, decimal? giaTri, CancellationToken ct)
+        private async Task<(decimal? Si, string? HanhDong)> TinhDiemDonAsync(int idChiTieu, decimal? giaTri, CancellationToken ct)
         {
             var nguongs = await _db.Nguongs
                 .Where(x => x.ID_ChiTieu == idChiTieu)
@@ -165,13 +278,13 @@ namespace PM_QLTBHTD.Application.Services
             foreach (var ng in nguongs)
             {
                 if (NguongEvaluator.KiemTraNguongVoiGiaTri(giaTri, ng))
-                    return ng.Diem_Si;
+                    return (ng.Diem_Si, ng.HanhDongKhuyenCao);
             }
 
-            return null;
+            return (null, null);
         }
 
-        private async Task<decimal?> TinhDiemNhieuBienAsync(
+        private async Task<(decimal? Si, string? HanhDong)> TinhDiemNhieuBienAsync(
             int idChiTieu,
             Dictionary<string, decimal> vars,
             CancellationToken ct)
@@ -187,10 +300,10 @@ namespace PM_QLTBHTD.Application.Services
             foreach (var ng in nguongs)
             {
                 if (NguongEvaluator.KiemTraNguongVoiGiaTri(vars, ng))
-                    return ng.Diem_Si;
+                    return (ng.Diem_Si, ng.HanhDongKhuyenCao);
             }
 
-            return null;
+            return (null, null);
         }
 
         /// <summary>
@@ -204,14 +317,14 @@ namespace PM_QLTBHTD.Application.Services
         ///     → tra Threshold (CBM_Nguong.MaKetQua) cho từng kết quả Formula như trước (chỉ áp dụng
         ///       khi có đúng 1 Formula — nhiều Formula mà không có Rule để gộp là lỗi cấu hình).
         /// </summary>
-        private async Task<decimal?> TinhDiemTuFormulaAsync(
+        private async Task<(decimal? Si, string? HanhDong)> TinhDiemTuFormulaAsync(
             int idChiTieu, Dictionary<string, decimal> ketQuaFormula, CancellationToken ct)
         {
             var congThucRule = await _db.ChiTieuRules
                 .Where(r => r.ID_ChiTieu == idChiTieu && r.LoaiRule == "CONG_THUC")
                 .FirstOrDefaultAsync(ct);
             if (congThucRule != null)
-                return NguongEvaluator.EvalNCalcNumeric(congThucRule.BieuThuc, ketQuaFormula);
+                return (NguongEvaluator.EvalNCalcNumeric(congThucRule.BieuThuc, ketQuaFormula), congThucRule.HanhDongKhuyenCao);
 
             var bangMucRules = await _db.ChiTieuRules
                 .Where(r => r.ID_ChiTieu == idChiTieu && r.LoaiRule == "BANG_MUC")
@@ -221,12 +334,13 @@ namespace PM_QLTBHTD.Application.Services
             {
                 foreach (var rule in bangMucRules)
                     if (NguongEvaluator.EvalNCalc(rule.BieuThuc, ketQuaFormula))
-                        return rule.Diem_Si;
-                return null; // có Rule nhưng không dòng nào khớp — coi như chưa xác định được Si
+                        return (rule.Diem_Si, rule.HanhDongKhuyenCao);
+                return (null, null); // có Rule nhưng không dòng nào khớp — coi như chưa xác định được Si
             }
 
             // Không có Rule -> tra Ngưỡng theo MaKetQua như cũ.
             var siTheoKetQua = new Dictionary<string, decimal>();
+            string? hanhDongDuyNhat = null;
             foreach (var (maKetQua, giaTri) in ketQuaFormula)
             {
                 var nguongs = await _db.Nguongs
@@ -240,6 +354,7 @@ namespace PM_QLTBHTD.Application.Services
                     if (NguongEvaluator.KiemTraNguongVoiGiaTri(giaTri, ng))
                     {
                         si = ng.Diem_Si;
+                        hanhDongDuyNhat = ng.HanhDongKhuyenCao;
                         break;
                     }
                 }
@@ -252,7 +367,7 @@ namespace PM_QLTBHTD.Application.Services
             }
 
             if (siTheoKetQua.Count == 1)
-                return siTheoKetQua.Values.First();
+                return (siTheoKetQua.Values.First(), hanhDongDuyNhat);
 
             throw new LoiFormulaException(idChiTieu, string.Join(",", siTheoKetQua.Keys),
                 "Chỉ tiêu có nhiều Formula nhưng chưa cấu hình CBM_ChiTieu_Rule (BANG_MUC hoặc " +
@@ -268,7 +383,7 @@ namespace PM_QLTBHTD.Application.Services
         /// (CBM_ChiTieu_PhanLoaiNguong), LF = Σ TrongSo các tháng / số tháng hợp lệ, rồi tra CBM_Nguong theo LF
         /// để ra Diem_Si cuối. Không ghi đè GiaTriNhap_So — giá trị hiển thị của phiếu vẫn là số đo tháng này.
         /// </summary>
-        public async Task<(decimal? Lf, decimal? DiemSi)> TinhDiemLFAsync(
+        public async Task<(decimal? Lf, decimal? DiemSi, string? HanhDong)> TinhDiemLFAsync(
             int idPhieu, int idThietBi, DateTime ngayKiemTra, int idChiTieu, decimal? giaTriThangNay,
             CancellationToken ct = default)
         {
@@ -351,7 +466,7 @@ namespace PM_QLTBHTD.Application.Services
 
             await _phanLoaiThangRepo.SaveChangesAsync();
 
-            if (soThangHopLe == 0) return (null, null);
+            if (soThangHopLe == 0) return (null, null, null);
 
             var lf = tongTrongSo / soThangHopLe;
 
@@ -361,16 +476,80 @@ namespace PM_QLTBHTD.Application.Services
                 .ToListAsync(ct);
 
             decimal? diemSi = null;
+            string? hanhDong = null;
             foreach (var ng in nguongs)
             {
                 if (NguongEvaluator.KiemTraNguongVoiGiaTri(lf, ng))
                 {
                     diemSi = ng.Diem_Si;
+                    hanhDong = ng.HanhDongKhuyenCao;
                     break;
                 }
             }
 
-            return (lf, diemSi);
+            return (lf, diemSi, hanhDong);
+        }
+
+        /// <summary>
+        /// Tính điểm cho chỉ tiêu kiểu LoaiTinhDiem='TOC_DO_SINH_KHI' (ví dụ tốc độ sinh khí DGA %/năm,
+        /// QT.40 mục 17.3.7). Người dùng chỉ nhập giá trị đo hiện tại (ppm) — hệ thống tự tìm giá trị đo
+        /// GẦN NHẤT trước đó của cùng chỉ tiêu + cùng thiết bị, tính % theo công thức IEEE C57.104:
+        /// % = (giá trị hiện tại - giá trị trước) / GiaTri_L1 × 100, rồi QUY ĐỔI theo đúng số ngày thực
+        /// tế giữa 2 lần đo (annualize ×365/số ngày) vì lịch đo thực tế hiếm khi cách nhau đúng 365 ngày.
+        /// Không tìm được giá trị đo trước đó nào (thiết bị mới/lần đo đầu tiên) → trả về Si=null
+        /// ("chưa tính được"), không mặc định điểm nào để tránh che giấu tình trạng thật.
+        /// </summary>
+        private async Task<(decimal? PhanTramNam, decimal? DiemSi, string? HanhDong)> TinhDiemTocDoSinhKhiAsync(
+            int idPhieu, int idThietBi, DateTime ngayKiemTra, int idChiTieu, decimal? giaTriHienTai,
+            CancellationToken ct = default)
+        {
+            if (giaTriHienTai is null) return (null, null, null);
+
+            var giaTriL1 = await _db.ChiTieus
+                .Where(c => c.ID_ChiTieu == idChiTieu)
+                .Select(c => c.GiaTri_L1)
+                .FirstOrDefaultAsync(ct);
+
+            if (giaTriL1 is null or 0) throw new ThieuGiaTriL1Exception(idChiTieu);
+
+            var lanDoTruoc = await (
+                from ctCu in _db.ChiTietKiemTras
+                join p in _db.PhieuKiemTras on ctCu.IDPhieu equals p.ID_Phieu
+                where p.ID_ThietBi == idThietBi
+                      && ctCu.ID_ChiTieu == idChiTieu
+                      && p.ID_Phieu != idPhieu
+                      && p.NgayKiemTra < ngayKiemTra
+                      && ctCu.GiaTriNhap_So != null
+                orderby p.NgayKiemTra descending, p.ID_Phieu descending
+                select new { p.NgayKiemTra, ctCu.GiaTriNhap_So }
+            ).FirstOrDefaultAsync(ct);
+
+            if (lanDoTruoc is null) return (null, null, null); // chưa có mốc so sánh — chưa tính được
+
+            var soNgay = (ngayKiemTra.Date - lanDoTruoc.NgayKiemTra.Date).Days;
+            if (soNgay <= 0) return (null, null, null); // dữ liệu lịch sử bất thường (cùng ngày/tương lai) — bỏ qua
+
+            var phanTramNam = (giaTriHienTai.Value - lanDoTruoc.GiaTriNhap_So!.Value) / giaTriL1.Value
+                               * 100m * (365m / soNgay);
+
+            var nguongs = await _db.Nguongs
+                .Where(x => x.ID_ChiTieu == idChiTieu)
+                .OrderBy(x => x.ThuTu)
+                .ToListAsync(ct);
+
+            decimal? diemSi = null;
+            string? hanhDong = null;
+            foreach (var ng in nguongs)
+            {
+                if (NguongEvaluator.KiemTraNguongVoiGiaTri(phanTramNam, ng))
+                {
+                    diemSi = ng.Diem_Si;
+                    hanhDong = ng.HanhDongKhuyenCao;
+                    break;
+                }
+            }
+
+            return (phanTramNam, diemSi, hanhDong);
         }
 
         private static bool KhopKhoangPhanLoai(decimal giaTri, CBM_ChiTieu_PhanLoaiNguong m)
@@ -388,19 +567,80 @@ namespace PM_QLTBHTD.Application.Services
             return true;
         }
 
-        private static Dictionary<string, decimal> XayDungVars(
-            int idChiTieu,
+        /// <summary>
+        /// Dựng bộ biến (vars) cho Input của 1 chỉ tiêu — mỗi biến tự chọn nguồn qua
+        /// CBM_ChiTieu_Input.NguonGiaTri:
+        ///   'MANUAL' (mặc định) — bắt buộc có trong <paramref name="danhSachInput"/>, thiếu thì ném
+        ///     ThieuInputChiTieuException (lỗi cấu hình/nhập liệu thật — người dùng bỏ sót ô bắt buộc).
+        ///   'CHITIEU_CUNG_PHIEU' — tự lấy GiaTriNhap_So của CBM_ChiTieu_Input.ID_ChiTieuNguon trong
+        ///     CÙNG phiếu (ưu tiên đọc <paramref name="giaTriTrongBatch"/> — cùng batch đang nhập,
+        ///     chưa kịp lưu DB; fallback đọc DB nếu chỉ tiêu nguồn đã lưu từ lần nhập trước). Thiếu
+        ///     giá trị (chỉ tiêu nguồn chưa đo) → trả về null cho CẢ hàm (không phải lỗi cấu hình,
+        ///     chỉ là "chưa đủ dữ liệu" — caller tự hiểu và gán Sᵢ=null, không ném exception ồn ào).
+        /// Đây là cơ chế DUY NHẤT cần thiết để cấu hình 1 chỉ tiêu "tự tính từ chỉ tiêu khác" (vd
+        /// TDCG = tổng 6 khí) hoàn toàn qua UI (Input nguồn + Formula + Ngưỡng), không cần thêm
+        /// LoaiTinhDiem/code C# riêng mỗi khi phát sinh nhu cầu tương tự.
+        /// </summary>
+        private async Task<Dictionary<string, decimal>?> XayDungVarsAsync(
+            int idPhieu, int idChiTieu,
             List<CBM_ChiTieu_Input> chiTieuInputs,
-            Dictionary<string, decimal>? danhSachInput)
+            Dictionary<string, decimal>? danhSachInput,
+            IReadOnlyDictionary<int, decimal?> giaTriTrongBatch,
+            CancellationToken ct)
         {
             var vars = new Dictionary<string, decimal>();
+            int? idThietBi = null; // lazy — chỉ query khi thật sự cần (nguồn THIETBI_THONGSO)
 
             foreach (var inp in chiTieuInputs)
             {
-                if (danhSachInput == null || !danhSachInput.TryGetValue(inp.MaInput, out var val))
-                    throw new ThieuInputChiTieuException(idChiTieu, inp.MaInput);
+                var nguon = inp.NguonGiaTri ?? "MANUAL";
 
-                vars[inp.MaInput] = val;
+                if (nguon == "MANUAL")
+                {
+                    if (danhSachInput == null || !danhSachInput.TryGetValue(inp.MaInput, out var val))
+                        throw new ThieuInputChiTieuException(idChiTieu, inp.MaInput);
+                    vars[inp.MaInput] = val;
+                }
+                else if (nguon == "CHITIEU_CUNG_PHIEU")
+                {
+                    if (inp.ID_ChiTieuNguon is null)
+                        throw new ThieuCauHinhInputException(idChiTieu, inp.MaInput);
+
+                    decimal? giaTri = giaTriTrongBatch.TryGetValue(inp.ID_ChiTieuNguon.Value, out var vBatch) && vBatch is not null
+                        ? vBatch
+                        : await _db.ChiTietKiemTras
+                            .Where(x => x.IDPhieu == idPhieu && x.ID_ChiTieu == inp.ID_ChiTieuNguon.Value)
+                            .Select(x => x.GiaTriNhap_So)
+                            .FirstOrDefaultAsync(ct);
+
+                    if (giaTri is null) return null; // chỉ tiêu nguồn chưa đo — chưa đủ dữ liệu
+                    vars[inp.MaInput] = giaTri.Value;
+                }
+                else if (nguon == "THIETBI_THONGSO")
+                {
+                    if (string.IsNullOrWhiteSpace(inp.MaThongSoThietBi))
+                        throw new ThieuCauHinhInputException(idChiTieu, inp.MaInput);
+
+                    idThietBi ??= await _db.PhieuKiemTras
+                        .Where(p => p.ID_Phieu == idPhieu)
+                        .Select(p => p.ID_ThietBi)
+                        .FirstAsync(ct);
+
+                    var giaTri = await (
+                        from t in _db.ThietBiThongSos
+                        join ts in _db.ThongSos on t.ID_ThongSo equals ts.ID_ThongSo
+                        where t.ID_ThietBi == idThietBi.Value && ts.MaThongSo == inp.MaThongSoThietBi
+                        select (decimal?)t.GiaTri
+                    ).FirstOrDefaultAsync(ct);
+
+                    if (giaTri is null)
+                        throw new ThieuThongSoThietBiException(idThietBi.Value, inp.MaThongSoThietBi);
+                    vars[inp.MaInput] = giaTri.Value;
+                }
+                else
+                {
+                    throw new ThieuCauHinhInputException(idChiTieu, inp.MaInput);
+                }
             }
 
             return vars;

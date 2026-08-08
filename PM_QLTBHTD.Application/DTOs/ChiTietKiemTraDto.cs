@@ -14,9 +14,13 @@ namespace PM_QLTBHTD.Application.DTOs
         public int IDPhieu { get; set; }
         public int ID_ChiTieu { get; set; }
         public string TenChiTieu { get; set; } = string.Empty;
+        public int ID_NhomChiTieu { get; set; }
+        public string TenNhom { get; set; } = string.Empty;
         public decimal? GiaTriNhap_So { get; set; }
         public string? GiaTriNhap_Chu { get; set; }
         public decimal? Diem_Si_DatDuoc { get; set; }
+        /// <summary>Snapshot khuyến cáo tại thời điểm chấm điểm (copy từ CBM_Nguong/CBM_ChiTieu_Rule đã khớp).</summary>
+        public string? HanhDongKhuyenCao { get; set; }
         public string? GhiChu { get; set; }
         /// <summary>Giá trị Input thô (T_tren, T_duoi...) khi chỉ tiêu dùng Rule/Formula nhiều biến —
         /// NULL/rỗng nếu chỉ tiêu chỉ nhập 1 giá trị đơn (đã có ở GiaTriNhap_So).</summary>
@@ -31,6 +35,7 @@ namespace PM_QLTBHTD.Application.DTOs
         public decimal? GiaTriNhap_So { get; set; }
         public string? GiaTriNhap_Chu { get; set; }
         public decimal? Diem_Si_DatDuoc { get; set; }
+        public string? HanhDongKhuyenCao { get; set; }
         public List<ChiTietInputValueDto>? DanhSachInput { get; set; }
     }
 

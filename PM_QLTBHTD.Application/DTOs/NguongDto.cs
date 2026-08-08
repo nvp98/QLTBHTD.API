@@ -14,6 +14,7 @@ namespace PM_QLTBHTD.Application.DTOs
         public string? BieuThuc_Logic { get; set; }
         /// <summary>Khi Chỉ tiêu có CBM_ChiTieu_Formula: MaKetQua của Formula mà ngưỡng này áp dụng. NULL = áp trực tiếp lên GiaTriNhap_So.</summary>
         public string? MaKetQua { get; set; }
+        public string? HanhDongKhuyenCao { get; set; }
     }
 
     public class CreateNguongDto
@@ -30,6 +31,7 @@ namespace PM_QLTBHTD.Application.DTOs
         public string? BieuThuc_Logic { get; set; }
         /// <summary>Khi Chỉ tiêu có CBM_ChiTieu_Formula: MaKetQua của Formula mà ngưỡng này áp dụng. NULL = áp trực tiếp lên GiaTriNhap_So.</summary>
         public string? MaKetQua { get; set; }
+        public string? HanhDongKhuyenCao { get; set; }
     }
 
     public class UpdateNguongDto
@@ -46,5 +48,6 @@ namespace PM_QLTBHTD.Application.DTOs
         public string? BieuThuc_Logic { get; set; }
         /// <summary>Khi Chỉ tiêu có CBM_ChiTieu_Formula: MaKetQua của Formula mà ngưỡng này áp dụng. NULL = áp trực tiếp lên GiaTriNhap_So.</summary>
         public string? MaKetQua { get; set; }
+        public string? HanhDongKhuyenCao { get; set; }
     }
 }

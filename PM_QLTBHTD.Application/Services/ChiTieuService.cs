@@ -35,6 +35,7 @@ namespace PM_QLTBHTD.Application.Services
                        TrongSo_Wi     = c.TrongSo_Wi,
                        TrangThai      = c.TrangThai,
                        LoaiTinhDiem   = c.LoaiTinhDiem,
+                       GiaTri_L1      = c.GiaTri_L1,
                    };
         }
 
@@ -78,6 +79,7 @@ namespace PM_QLTBHTD.Application.Services
                 TrongSo_Wi     = dto.TrongSo_Wi,
                 TrangThai      = dto.TrangThai,
                 LoaiTinhDiem   = dto.LoaiTinhDiem,
+                GiaTri_L1      = dto.GiaTri_L1,
             };
             await _repository.AddAsync(entity);
             await _repository.SaveChangesAsync();
@@ -94,6 +96,7 @@ namespace PM_QLTBHTD.Application.Services
             entity.TrongSo_Wi     = dto.TrongSo_Wi;
             entity.TrangThai      = dto.TrangThai;
             entity.LoaiTinhDiem   = dto.LoaiTinhDiem;
+            entity.GiaTri_L1      = dto.GiaTri_L1;
             _repository.Update(entity);
             await _repository.SaveChangesAsync();
             return await GetByIdAsync(id);

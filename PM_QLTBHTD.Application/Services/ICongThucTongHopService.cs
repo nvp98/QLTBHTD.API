@@ -1,4 +1,5 @@
 using PM_QLTBHTD.Application.DTOs;
+using PM_QLTBHTD.Application.Helpers;
 
 namespace PM_QLTBHTD.Application.Services
 {
@@ -10,5 +11,7 @@ namespace PM_QLTBHTD.Application.Services
         Task<CongThucTongHopDto> CreateAsync(CreateCongThucTongHopDto dto);
         Task<CongThucTongHopDto?> UpdateAsync(int id, UpdateCongThucTongHopDto dto);
         Task<bool> DeleteAsync(int id);
+        /// <summary>Config Validator — quét vòng lặp tham chiếu trong cây công thức của 1 loại thiết bị.</summary>
+        Task<VongLapKetQua> ValidateVongLapAsync(int idLoaiThietBi);
     }
 }

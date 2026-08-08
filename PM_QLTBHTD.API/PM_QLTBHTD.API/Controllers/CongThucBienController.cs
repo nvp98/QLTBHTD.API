@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using PM_QLTBHTD.Application.DTOs;
+using PM_QLTBHTD.Application.Exceptions;
 using PM_QLTBHTD.Application.Services;
 
 namespace PM_QLTBHTD.API.Controllers
@@ -29,15 +30,29 @@ namespace PM_QLTBHTD.API.Controllers
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreateCongThucBienDto dto)
         {
-            var created = await _service.CreateAsync(dto);
-            return CreatedAtAction(nameof(GetById), new { id = created.ID_Bien }, created);
+            try
+            {
+                var created = await _service.CreateAsync(dto);
+                return CreatedAtAction(nameof(GetById), new { id = created.ID_Bien }, created);
+            }
+            catch (VongLapCauHinhException ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
         }
 
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(int id, [FromBody] UpdateCongThucBienDto dto)
         {
-            var updated = await _service.UpdateAsync(id, dto);
-            return updated == null ? NotFound() : Ok(updated);
+            try
+            {
+                var updated = await _service.UpdateAsync(id, dto);
+                return updated == null ? NotFound() : Ok(updated);
+            }
+            catch (VongLapCauHinhException ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
         }
 
         [HttpDelete("{id}")]

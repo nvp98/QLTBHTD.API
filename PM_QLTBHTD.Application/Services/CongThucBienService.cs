@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using PM_QLTBHTD.Application.DTOs;
+using PM_QLTBHTD.Application.Exceptions;
+using PM_QLTBHTD.Application.Helpers;
 using PM_QLTBHTD.Application.Interfaces;
 using PM_QLTBHTD.Domain.Entities;
 using PM_QLTBHTD.Domain.IRepository;
@@ -46,8 +48,37 @@ namespace PM_QLTBHTD.Application.Services
         public async Task<CongThucBienDto?> GetByIdAsync(int id)
             => await JoinQuery().FirstOrDefaultAsync(x => x.ID_Bien == id);
 
+        /// <summary>Config Validator mục 3.2 — chặn SỚM khi biến mới (NguonBien='NHOM_CON') sẽ tạo
+        /// vòng lặp tham chiếu trong cây Aggregation, thay vì để tới lúc chạy phiếu thật mới lộ ra
+        /// (ScoringEngine vẫn tự chặn lúc chạy qua VongLapNhomChiTieuException, đây là lớp chặn sớm
+        /// hơn — ngay lúc lưu cấu hình).</summary>
+        private async Task KiemTraVongLapTruocKhiLuuAsync(int idCongThuc, string? nguonBien, int? idNhomCon)
+        {
+            if (nguonBien != "NHOM_CON" || idNhomCon is null) return;
+
+            var tuNhom = await _db.CongThucTongHops
+                .Where(c => c.ID_CongThuc == idCongThuc)
+                .Select(c => c.ID_NhomChiTieu)
+                .FirstOrDefaultAsync();
+
+            var canh = await (
+                from ct in _db.CongThucTongHops
+                where ct.TrangThai == 1
+                join b in _db.CongThucBiens on ct.ID_CongThuc equals b.ID_CongThuc
+                where b.NguonBien == "NHOM_CON" && b.ID_NhomCon != null
+                select new { Tu = ct.ID_NhomChiTieu, Den = b.ID_NhomCon!.Value }
+            ).ToListAsync();
+
+            var canhTheoTu = canh.GroupBy(x => x.Tu).ToDictionary(g => g.Key, g => g.Select(x => x.Den).ToList());
+
+            if (CongThucValidator.SeTaoVongLapNeuThemCanh(canhTheoTu, tuNhom, idNhomCon.Value))
+                throw new VongLapCauHinhException(tuNhom, idNhomCon.Value);
+        }
+
         public async Task<CongThucBienDto> CreateAsync(CreateCongThucBienDto dto)
         {
+            await KiemTraVongLapTruocKhiLuuAsync(dto.ID_CongThuc, dto.NguonBien, dto.ID_NhomCon);
+
             var entity = new CBM_CongThuc_Bien
             {
                 ID_CongThuc = dto.ID_CongThuc,
@@ -68,6 +99,8 @@ namespace PM_QLTBHTD.Application.Services
         {
             var entity = await _repo.GetByIdAsync(id);
             if (entity == null) return null;
+
+            await KiemTraVongLapTruocKhiLuuAsync(entity.ID_CongThuc, dto.NguonBien, dto.ID_NhomCon);
 
             entity.MaBien = dto.MaBien;
             entity.NguonBien = dto.NguonBien;

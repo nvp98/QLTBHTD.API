@@ -29,5 +29,8 @@ namespace PM_QLTBHTD.Domain.Entities
         /// NULL = áp trực tiếp lên GiaTriNhap_So (Chỉ tiêu không có Formula) — tương thích ngược.
         /// </summary>
         public string? MaKetQua { get; set; }
+
+        /// <summary>Hành động khuyến cáo khi chỉ tiêu rơi vào mức này (VD "Tăng tần suất kiểm tra 6 tháng/lần").</summary>
+        public string? HanhDongKhuyenCao { get; set; }
     }
 }
