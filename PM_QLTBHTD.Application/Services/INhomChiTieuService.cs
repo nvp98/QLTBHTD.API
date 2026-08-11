@@ -7,6 +7,7 @@ namespace PM_QLTBHTD.Application.Services
         Task<PagedResult<NhomChiTieuDto>> GetPagedAsync(string? search, int page, int? pageSize);
         Task<IEnumerable<NhomChiTieuDto>> GetAllActiveAsync();
         Task<IEnumerable<NhomChiTieuDto>> GetByLoaiThietBiAsync(int idLoaiThietBi);
+        Task<IEnumerable<NhomChiTieuDto>> GetKhaDungNhapLieuAsync(int idLoaiThietBi);
         Task<NhomChiTieuDto?> GetByIdAsync(int id);
         Task<NhomChiTieuDto> CreateAsync(CreateNhomChiTieuDto dto);
         Task<NhomChiTieuDto?> UpdateAsync(int id, UpdateNhomChiTieuDto dto);

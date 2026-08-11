@@ -33,7 +33,8 @@ namespace PM_QLTBHTD.Application.Services
                        PhienBan = n.PhienBan,
                        TrangThai = n.TrangThai,
                        TrongSo_Wi = n.TrongSo_Wi,
-                       CoCongThuc = _db.CongThucTongHops.Any(c => c.ID_NhomChiTieu == n.ID_NhomChiTieu && c.TrangThai == 1)
+                       CoCongThuc = _db.CongThucTongHops.Any(c => c.ID_NhomChiTieu == n.ID_NhomChiTieu && c.TrangThai == 1),
+                       SoChiTieu = _db.ChiTieus.Count(c => c.ID_NhomChiTieu == n.ID_NhomChiTieu && c.TrangThai == 1)
                    };
         }
 
@@ -56,6 +57,14 @@ namespace PM_QLTBHTD.Application.Services
 
         public async Task<IEnumerable<NhomChiTieuDto>> GetByLoaiThietBiAsync(int idLoaiThietBi)
             => await JoinQuery().Where(x => x.ID_LoaiThietBi == idLoaiThietBi).ToListAsync();
+
+        /// <summary>Chỉ trả về nhóm CÓ chỉ tiêu trực tiếp để nhập — loại bỏ nhóm tổng hợp thuần
+        /// (vd CHI1/CHI2/CHI3/TS1/TS2, SoChiTieu=0) vì chọn nhóm đó ở màn Tạo phiếu sẽ ra form trống,
+        /// điểm của chúng chỉ tự gộp lên từ nhóm con chứ không có chỗ nhập liệu trực tiếp.</summary>
+        public async Task<IEnumerable<NhomChiTieuDto>> GetKhaDungNhapLieuAsync(int idLoaiThietBi)
+            => await JoinQuery()
+                .Where(x => x.ID_LoaiThietBi == idLoaiThietBi && x.TrangThai == 1 && x.SoChiTieu > 0)
+                .ToListAsync();
 
         public async Task<NhomChiTieuDto?> GetByIdAsync(int id)
             => await JoinQuery().FirstOrDefaultAsync(x => x.ID_NhomChiTieu == id);

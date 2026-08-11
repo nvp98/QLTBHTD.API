@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using PM_QLTBHTD.Application.DTOs;
+using PM_QLTBHTD.Application.Exceptions;
 using PM_QLTBHTD.Application.Services;
 
 namespace PM_QLTBHTD.API.Controllers
@@ -27,15 +28,29 @@ namespace PM_QLTBHTD.API.Controllers
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreateChiTieuFormulaDto dto)
         {
-            var created = await _service.CreateAsync(dto);
-            return CreatedAtAction(nameof(GetById), new { id = created.ID_Formula }, created);
+            try
+            {
+                var created = await _service.CreateAsync(dto);
+                return CreatedAtAction(nameof(GetById), new { id = created.ID_Formula }, created);
+            }
+            catch (ThieuRuleGopFormulaException ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
         }
 
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(int id, [FromBody] UpdateChiTieuFormulaDto dto)
         {
-            var updated = await _service.UpdateAsync(id, dto);
-            return updated == null ? NotFound() : Ok(updated);
+            try
+            {
+                var updated = await _service.UpdateAsync(id, dto);
+                return updated == null ? NotFound() : Ok(updated);
+            }
+            catch (ThieuRuleGopFormulaException ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
         }
 
         [HttpDelete("{id}")]

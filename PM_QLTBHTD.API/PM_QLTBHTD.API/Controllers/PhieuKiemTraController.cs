@@ -16,8 +16,19 @@ namespace PM_QLTBHTD.API.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAll([FromQuery] string? search, [FromQuery] int page = 1, [FromQuery] int? pageSize = null)
-            => Ok(await _service.GetPagedAsync(search, page, pageSize));
+        public async Task<IActionResult> GetAll(
+            [FromQuery] string? search,
+            [FromQuery] int? idTram = null, [FromQuery] int? idLoaiTB = null, [FromQuery] int? idThietBi = null,
+            [FromQuery] DateTime? tuNgay = null, [FromQuery] DateTime? denNgay = null,
+            [FromQuery] int page = 1, [FromQuery] int? pageSize = null)
+            => Ok(await _service.GetPagedAsync(search, idTram, idLoaiTB, idThietBi, tuNgay, denNgay, page, pageSize));
+
+        [HttpGet("latest-per-thietbi")]
+        public async Task<IActionResult> GetLatestPerThietBi(
+            [FromQuery] string? search,
+            [FromQuery] int? idTram = null, [FromQuery] int? idLoaiTB = null, [FromQuery] int? idThietBi = null,
+            [FromQuery] DateTime? tuNgay = null, [FromQuery] DateTime? denNgay = null)
+            => Ok(await _service.GetLatestPerThietBiAsync(search, idTram, idLoaiTB, idThietBi, tuNgay, denNgay));
 
         [HttpGet("by-thietbi/{idThietBi}")]
         public async Task<IActionResult> GetByThietBi(int idThietBi)

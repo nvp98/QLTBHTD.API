@@ -4,7 +4,14 @@ namespace PM_QLTBHTD.Application.Services
 {
     public interface IPhieuKiemTraService
     {
-        Task<PagedResult<PhieuKiemTraDto>> GetPagedAsync(string? search, int page, int? pageSize);
+        Task<PagedResult<PhieuKiemTraDto>> GetPagedAsync(
+            string? search, int? idTram, int? idLoaiTB, int? idThietBi, DateTime? tuNgay, DateTime? denNgay,
+            int page, int? pageSize);
+        /// <summary>Phiếu MỚI NHẤT của mỗi thiết bị (trong tập đã lọc) — vd trang Kết quả kiểm tra
+        /// chế độ "Mới nhất mỗi thiết bị". Lọc trước rồi mới chọn mới nhất mỗi nhóm, không phải
+        /// ngược lại — khớp đúng hành vi lọc phía client trước đây.</summary>
+        Task<IEnumerable<PhieuKiemTraDto>> GetLatestPerThietBiAsync(
+            string? search, int? idTram, int? idLoaiTB, int? idThietBi, DateTime? tuNgay, DateTime? denNgay);
         Task<IEnumerable<PhieuKiemTraDto>> GetByThietBiAsync(int idThietBi);
         Task<IEnumerable<PhieuKiemTraDto>> GetByNgayAsync(DateTime tuNgay, DateTime denNgay);
         Task<PhieuKiemTraDetailDto?> GetDetailAsync(int idPhieu);

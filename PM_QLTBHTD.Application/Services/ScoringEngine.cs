@@ -194,16 +194,38 @@ namespace PM_QLTBHTD.Application.Services
                 var bindValues = new Dictionary<string, double>();
                 var weightedValues = new List<(double Value, decimal TrongSo)>();
 
+                // 3 loại công thức "tự tính từ danh sách biến" (không evaluate BieuThuc tuỳ ý) có thể
+                // BỎ QUA biến thiếu dữ liệu/chưa cấu hình xong và tính trên phần còn lại — đúng ý
+                // nghĩa toán học của trung bình trọng số / MIN trên 1 tập hợp, giống hệt cách nhóm
+                // LEAF đã bỏ qua chỉ tiêu thiếu đo. CUSTOM_NCALC (biểu thức tuỳ ý người dùng viết,
+                // vd Sc*St*Sr) KHÔNG áp dụng được — không có cách "bỏ 1 biến" mà không làm sai lệch
+                // ý nghĩa công thức (vd phép nhân thiếu 1 thừa số không có giá trị mặc định an toàn),
+                // nên vẫn giữ nguyên hành vi cũ: 1 biến lỗi là cả công thức fail.
+                var coTheBoQuaBienThieu = congThuc.LoaiCongThuc is "WEIGHTED_AVG" or "WEIGHTED_AVG_SCALED" or "MIN_BIEN";
+
                 foreach (var bien in biens)
                 {
-                    double val = bien.NguonBien switch
+                    double val;
+                    try
                     {
-                        "HANGSO" => (double)(bien.GiaTriHangSo ?? 0m),
-                        "CHITIEU" => await LayDiemChiTieuAsync(bien.ID_ChiTieuNguon!.Value, idPhieu, ct),
-                        "NHOM_CON" => (double)await TinhDiemDeQuyAsync(
-                                            bien.ID_NhomCon!.Value, idPhieu, duongDi, depth + 1, ct),
-                        _ => throw new InvalidOperationException($"NguonBien không hợp lệ: '{bien.NguonBien}'")
-                    };
+                        val = bien.NguonBien switch
+                        {
+                            "HANGSO" => (double)(bien.GiaTriHangSo ?? 0m),
+                            "CHITIEU" => await LayDiemChiTieuAsync(bien.ID_ChiTieuNguon!.Value, idPhieu, ct),
+                            "NHOM_CON" => (double)await TinhDiemDeQuyAsync(
+                                                bien.ID_NhomCon!.Value, idPhieu, duongDi, depth + 1, ct),
+                            _ => throw new InvalidOperationException($"NguonBien không hợp lệ: '{bien.NguonBien}'")
+                        };
+                    }
+                    catch (Exception ex) when (coTheBoQuaBienThieu && ex is ThieuDuLieuChiTietKiemTraException
+                        or ThieuDuLieuNhomChiTieuException or CongThucKhongTonTaiException)
+                    {
+                        // Biến này chưa có dữ liệu (chưa có thiết bị đo / nhóm con chưa cấu hình xong
+                        // công thức) — bỏ qua, không làm hỏng cả công thức cha. VongLapNhomChiTieuException
+                        // và các lỗi khác (lỗi cấu hình thật) KHÔNG nằm trong danh sách trên nên vẫn lan
+                        // lên bình thường, không bị nuốt nhầm.
+                        continue;
+                    }
                     bindValues[bien.MaBien] = val;
 
                     // Thứ tự ưu tiên trọng số: override riêng cho công thức này (CBM_CongThuc_Bien.TrongSo)
@@ -224,6 +246,11 @@ namespace PM_QLTBHTD.Application.Services
 
                 duongDi.Remove(idNhomChiTieu);
 
+                // Mọi biến (kể cả bỏ qua được) đều thiếu dữ liệu -> vẫn "chưa tính được" như cũ,
+                // không giả định 0/mặc định nào.
+                if (coTheBoQuaBienThieu && weightedValues.Count == 0)
+                    throw new ThieuDuLieuNhomChiTieuException(idNhomChiTieu);
+
                 if (congThuc.LoaiCongThuc is "WEIGHTED_AVG" or "WEIGHTED_AVG_SCALED")
                 {
                     // Tự tính ΣSiWi/ΣWi (WEIGHTED_AVG, thang 0-3 — vd Soqt/Soqtc) hoặc
@@ -238,8 +265,7 @@ namespace PM_QLTBHTD.Application.Services
                     // evaluate BieuThuc, giống cơ chế WEIGHTED_AVG*. Dùng cho công thức kiểu "Sm = MIN
                     // của nhiều bộ phận" (Bảng 22 QT.40) — thêm/bớt bộ phận chỉ cần sửa danh sách biến,
                     // không phải viết lại chuỗi Min(a,Min(b,Min(c,...))) lồng nhau bằng tay.
-                    if (bindValues.Count == 0)
-                        throw new CongThucKhongTonTaiException(idNhomChiTieu);
+                    // (bindValues rỗng đã bị chặn ở guard "coTheBoQuaBienThieu && weightedValues.Count==0" phía trên)
                     diem = (decimal)bindValues.Values.Min();
                 }
                 else

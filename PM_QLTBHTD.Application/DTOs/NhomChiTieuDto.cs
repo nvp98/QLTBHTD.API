@@ -14,6 +14,9 @@ namespace PM_QLTBHTD.Application.DTOs
         public bool CoCongThuc { get; set; }
         /// <summary>Trọng số canonical của nhóm khi tham gia công thức nhóm cha (NHOM_CON).</summary>
         public decimal? TrongSo_Wi { get; set; }
+        /// <summary>Số chỉ tiêu đang hoạt động thuộc trực tiếp nhóm này — nhóm tổng hợp thuần (vd
+        /// CHI1/TS1) luôn = 0 vì điểm chỉ gộp từ nhóm con, không có chỗ để nhập liệu trực tiếp.</summary>
+        public int SoChiTieu { get; set; }
     }
 
     /// <summary>Node trong cây NhomChiTieu — bao gồm các node con đệ quy.</summary>

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using PM_QLTBHTD.Application.DTOs;
+using PM_QLTBHTD.Application.Exceptions;
 using PM_QLTBHTD.Application.Services;
 
 namespace PM_QLTBHTD.API.Controllers
@@ -34,15 +35,29 @@ namespace PM_QLTBHTD.API.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(int id, [FromBody] UpdateChiTieuRuleDto dto)
         {
-            var updated = await _service.UpdateAsync(id, dto);
-            return updated == null ? NotFound() : Ok(updated);
+            try
+            {
+                var updated = await _service.UpdateAsync(id, dto);
+                return updated == null ? NotFound() : Ok(updated);
+            }
+            catch (ThieuRuleGopFormulaException ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
         }
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
-            var result = await _service.DeleteAsync(id);
-            return result ? NoContent() : NotFound();
+            try
+            {
+                var result = await _service.DeleteAsync(id);
+                return result ? NoContent() : NotFound();
+            }
+            catch (ThieuRuleGopFormulaException ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
         }
     }
 }

@@ -36,6 +36,8 @@ namespace PM_QLTBHTD.Application.Services
         {
             return from p in _db.PhieuKiemTras
                    join tb in _db.ThietBis on p.ID_ThietBi equals tb.ID_ThietBi
+                   join tram in _db.TramDiens on tb.ID_Tram equals tram.IDTram
+                   join loai in _db.LoaiThietBis on tb.ID_LoaiTB equals loai.ID_LoaiThietBi
                    join nhom in _db.NhomChiTieus on p.ID_NhomChiTieu equals nhom.ID_NhomChiTieu into nhomJoin
                    from nhom in nhomJoin.DefaultIfEmpty()
                    select new PhieuKiemTraDto
@@ -43,6 +45,10 @@ namespace PM_QLTBHTD.Application.Services
                        ID_Phieu       = p.ID_Phieu,
                        ID_ThietBi     = p.ID_ThietBi,
                        TenThietBi     = tb.TenThietBi,
+                       ID_Tram        = tb.ID_Tram,
+                       TenTram        = tram.TenTram,
+                       ID_LoaiTB      = tb.ID_LoaiTB,
+                       TenLoaiTB      = loai.TenLoaiTB,
                        ID_NhomChiTieu = p.ID_NhomChiTieu,
                        TenNhom        = nhom != null ? nhom.TenNhom : null,
                        NgayKiemTra    = p.NgayKiemTra,
@@ -53,12 +59,33 @@ namespace PM_QLTBHTD.Application.Services
                    };
         }
 
-        public async Task<PagedResult<PhieuKiemTraDto>> GetPagedAsync(string? search, int page, int? pageSize)
+        /// <summary>Áp bộ lọc dùng chung cho danh sách kết quả kiểm tra (trang Kết quả) — Trạm/Loại
+        /// thiết bị/Thiết bị/khoảng ngày kiểm tra, cộng tìm kiếm tự do theo tên thiết bị/KTV. Ngày
+        /// so sánh theo NGÀY LỊCH (bỏ phần giờ) để FE khỏi phải tự tính start/end-of-day.</summary>
+        private static IQueryable<PhieuKiemTraDto> ApplyFilter(
+            IQueryable<PhieuKiemTraDto> query,
+            string? search, int? idTram, int? idLoaiTB, int? idThietBi, DateTime? tuNgay, DateTime? denNgay)
         {
-            var query = JoinQuery().Where(x =>
-                string.IsNullOrEmpty(search)
-                || x.TenThietBi.Contains(search)
-                || (x.NguoiKiemTra != null && x.NguoiKiemTra.Contains(search)));
+            if (!string.IsNullOrEmpty(search))
+                query = query.Where(x => x.TenThietBi.Contains(search) || (x.NguoiKiemTra != null && x.NguoiKiemTra.Contains(search)));
+            if (idTram.HasValue)
+                query = query.Where(x => x.ID_Tram == idTram.Value);
+            if (idLoaiTB.HasValue)
+                query = query.Where(x => x.ID_LoaiTB == idLoaiTB.Value);
+            if (idThietBi.HasValue)
+                query = query.Where(x => x.ID_ThietBi == idThietBi.Value);
+            if (tuNgay.HasValue)
+                query = query.Where(x => x.NgayKiemTra >= tuNgay.Value.Date);
+            if (denNgay.HasValue)
+                query = query.Where(x => x.NgayKiemTra < denNgay.Value.Date.AddDays(1));
+            return query;
+        }
+
+        public async Task<PagedResult<PhieuKiemTraDto>> GetPagedAsync(
+            string? search, int? idTram, int? idLoaiTB, int? idThietBi, DateTime? tuNgay, DateTime? denNgay,
+            int page, int? pageSize)
+        {
+            var query = ApplyFilter(JoinQuery(), search, idTram, idLoaiTB, idThietBi, tuNgay, denNgay);
 
             var total = await query.CountAsync();
             var ordered = query.OrderByDescending(x => x.NgayKiemTra);
@@ -66,6 +93,24 @@ namespace PM_QLTBHTD.Application.Services
                 ? ordered.Skip((page - 1) * pageSize.Value).Take(pageSize.Value)
                 : ordered).ToListAsync();
             return new PagedResult<PhieuKiemTraDto> { Items = items, Total = total, Page = page, PageSize = pageSize ?? total };
+        }
+
+        /// <summary>Phiếu mới nhất của mỗi thiết bị trong tập ĐÃ LỌC — lọc trước, chọn mới nhất mỗi
+        /// nhóm sau (khớp đúng hành vi trước đây khi làm phía client). Dùng subquery MAX(ID_Phieu)
+        /// GROUP BY ID_ThietBi thay vì GroupBy+First trên DTO phức tạp — dịch sang SQL ổn định hơn.</summary>
+        public async Task<IEnumerable<PhieuKiemTraDto>> GetLatestPerThietBiAsync(
+            string? search, int? idTram, int? idLoaiTB, int? idThietBi, DateTime? tuNgay, DateTime? denNgay)
+        {
+            var filtered = ApplyFilter(JoinQuery(), search, idTram, idLoaiTB, idThietBi, tuNgay, denNgay);
+
+            var latestIdPhieus = filtered
+                .GroupBy(x => x.ID_ThietBi)
+                .Select(g => g.Max(x => x.ID_Phieu));
+
+            return await filtered
+                .Where(x => latestIdPhieus.Contains(x.ID_Phieu))
+                .OrderByDescending(x => x.NgayKiemTra)
+                .ToListAsync();
         }
 
         public async Task<IEnumerable<PhieuKiemTraDto>> GetByThietBiAsync(int idThietBi)

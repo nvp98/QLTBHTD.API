@@ -5,6 +5,10 @@ namespace PM_QLTBHTD.Application.DTOs
         public int ID_Phieu { get; set; }
         public int ID_ThietBi { get; set; }
         public string TenThietBi { get; set; } = string.Empty;
+        public int ID_Tram { get; set; }
+        public string? TenTram { get; set; }
+        public int ID_LoaiTB { get; set; }
+        public string? TenLoaiTB { get; set; }
         public int? ID_NhomChiTieu { get; set; }
         public string? TenNhom { get; set; }
         public DateTime NgayKiemTra { get; set; }

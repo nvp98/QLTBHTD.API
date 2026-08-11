@@ -27,6 +27,10 @@ namespace PM_QLTBHTD.API.Controllers
         public async Task<IActionResult> GetByLoaiThietBi(int idLoaiThietBi)
             => Ok(await _service.GetByLoaiThietBiAsync(idLoaiThietBi));
 
+        [HttpGet("kha-dung-nhap-lieu/{idLoaiThietBi}")]
+        public async Task<IActionResult> GetKhaDungNhapLieu(int idLoaiThietBi)
+            => Ok(await _service.GetKhaDungNhapLieuAsync(idLoaiThietBi));
+
         [HttpGet("cay/{idLoaiThietBi}")]
         public async Task<IActionResult> GetCay(int idLoaiThietBi)
             => Ok(await _service.GetCayAsync(idLoaiThietBi));
