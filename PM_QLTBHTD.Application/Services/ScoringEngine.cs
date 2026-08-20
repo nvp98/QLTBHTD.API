@@ -3,6 +3,7 @@ using NCalc;
 using PM_QLTBHTD.Application.DTOs;
 using PM_QLTBHTD.Application.Exceptions;
 using PM_QLTBHTD.Application.Interfaces;
+using PM_QLTBHTD.Application.Services.IService;
 using PM_QLTBHTD.Domain.Entities;
 using PM_QLTBHTD.Domain.IRepository;
 using System.Text.Json;
@@ -72,28 +73,28 @@ namespace PM_QLTBHTD.Application.Services
             var phieu = await _phieuRepo.GetByIdAsync(idPhieu);
             if (phieu == null) return null;
 
-            int? idNhomGoc = phieu.ID_NhomChiTieu;
+            // CSSK tổng LUÔN tính từ NHÓM GỐC thật của cây (theo loại thiết bị), KHÔNG dùng thẳng
+            // phieu.ID_NhomChiTieu — cột đó chỉ ghi nhóm ĐÃ ĐO trong phiếu này (có thể là 1 nhánh lá,
+            // vd "Nồng độ khí hoà tan OLTC"), không phải gốc cây. Trước đây dùng thẳng khiến CSSK tổng
+            // của 1 phiếu đo 1 nhánh lẻ = đúng bằng điểm nhánh đó, bỏ qua toàn bộ các nhóm khác (mà đáng
+            // lẽ phải lấy kết quả GẦN NHẤT trước đó qua LayDiemChiTieuGanNhatAsync để gộp thành CSSK thật).
+            var thietBi = await _db.ThietBis.FirstOrDefaultAsync(t => t.ID_ThietBi == phieu.ID_ThietBi, ct);
+            if (thietBi == null) return null;
 
-            if (idNhomGoc == null)
-            {
-                var thietBi = await _db.ThietBis.FirstOrDefaultAsync(t => t.ID_ThietBi == phieu.ID_ThietBi, ct);
-                if (thietBi == null) return null;
+            var goc = await _db.NhomChiTieus
+                .Where(n => n.ID_LoaiThietBi == thietBi.ID_LoaiTB && n.ID_NhomCha == null && n.TrangThai == 1)
+                .Select(n => n.ID_NhomChiTieu)
+                .ToListAsync(ct);
 
-                var goc = await _db.NhomChiTieus
-                    .Where(n => n.ID_LoaiThietBi == thietBi.ID_LoaiTB && n.ID_NhomCha == null && n.TrangThai == 1)
-                    .Select(n => n.ID_NhomChiTieu)
-                    .ToListAsync(ct);
+            if (goc.Count == 0) return null; // cây chưa cấu hình xong — chưa tính được, không phải lỗi
+            if (goc.Count > 1) throw new NhieuNhomGocException(thietBi.ID_LoaiTB, goc.Count);
 
-                if (goc.Count == 0) return null; // cây chưa cấu hình xong — chưa tính được, không phải lỗi
-                if (goc.Count > 1) throw new NhieuNhomGocException(thietBi.ID_LoaiTB, goc.Count);
-
-                idNhomGoc = goc[0];
-            }
+            var idNhomGoc = goc[0];
 
             decimal diem;
             try
             {
-                diem = await TinhDiemNhomAsync(idNhomGoc.Value, idPhieu, ct);
+                diem = await TinhDiemNhomAsync(idNhomGoc, idPhieu, ct);
             }
             catch (Exception ex)
             {

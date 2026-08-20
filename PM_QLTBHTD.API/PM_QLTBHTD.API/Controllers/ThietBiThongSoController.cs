@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using PM_QLTBHTD.Application.DTOs;
-using PM_QLTBHTD.Application.Services;
+using PM_QLTBHTD.Application.Services.IService;
 
 namespace PM_QLTBHTD.API.Controllers
 {

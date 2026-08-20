@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using PM_QLTBHTD.Application.DTOs;
+using PM_QLTBHTD.Application.Exceptions;
 using PM_QLTBHTD.Application.Interfaces;
+using PM_QLTBHTD.Application.Services.IService;
 using PM_QLTBHTD.Domain.Entities;
 using PM_QLTBHTD.Domain.IRepository;
 
@@ -101,6 +103,10 @@ namespace PM_QLTBHTD.Application.Services
         {
             var entity = await _repository.GetByIdAsync(id);
             if (entity == null) return false;
+
+            var soDuLieuDaNhap = await _db.ChiTietKiemTra_Inputs.CountAsync(x => x.ID_Input == id);
+            if (soDuLieuDaNhap > 0)
+                throw new ChiTieuInputDangSuDungException(id, soDuLieuDaNhap);
 
             _repository.Delete(entity);
             await _repository.SaveChangesAsync();

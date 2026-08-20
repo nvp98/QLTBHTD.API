@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using PM_QLTBHTD.Application.DTOs;
 using PM_QLTBHTD.Application.Helpers;
 using PM_QLTBHTD.Application.Interfaces;
+using PM_QLTBHTD.Application.Services.IService;
 using PM_QLTBHTD.Domain.Entities;
 using PM_QLTBHTD.Domain.IRepository;
 
@@ -10,11 +11,17 @@ namespace PM_QLTBHTD.Application.Services
     public class CongThucTongHopService : ICongThucTongHopService
     {
         private readonly ICongThucTongHopRepository _repo;
+        private readonly ICongThucBienRepository _bienRepo;
+        private readonly ICongThucTestCaseRepository _testCaseRepo;
         private readonly IAppDbContext _db;
 
-        public CongThucTongHopService(ICongThucTongHopRepository repo, IAppDbContext db)
+        public CongThucTongHopService(
+            ICongThucTongHopRepository repo, ICongThucBienRepository bienRepo,
+            ICongThucTestCaseRepository testCaseRepo, IAppDbContext db)
         {
             _repo = repo;
+            _bienRepo = bienRepo;
+            _testCaseRepo = testCaseRepo;
             _db = db;
         }
 
@@ -108,6 +115,18 @@ namespace PM_QLTBHTD.Application.Services
         {
             var entity = await _repo.GetByIdAsync(id);
             if (entity == null) return false;
+
+            // Biến + test case là sub-config thuần của công thức này, không có ý nghĩa độc lập — cascade.
+            var biens = await _bienRepo.FindAsync(x => x.ID_CongThuc == id);
+            foreach (var b in biens)
+                _bienRepo.Delete(b);
+            await _bienRepo.SaveChangesAsync();
+
+            var testCases = await _testCaseRepo.FindAsync(x => x.ID_CongThuc == id);
+            foreach (var tc in testCases)
+                _testCaseRepo.Delete(tc);
+            await _testCaseRepo.SaveChangesAsync();
+
             _repo.Delete(entity);
             await _repo.SaveChangesAsync();
             return true;

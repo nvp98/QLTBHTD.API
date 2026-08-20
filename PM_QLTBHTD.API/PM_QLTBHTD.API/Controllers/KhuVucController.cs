@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using PM_QLTBHTD.Application.DTOs;
-using PM_QLTBHTD.Application.Services;
+using PM_QLTBHTD.Application.Exceptions;
+using PM_QLTBHTD.Application.Services.IService;
 
 namespace PM_QLTBHTD.API.Controllers
 {
@@ -47,8 +48,15 @@ namespace PM_QLTBHTD.API.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
-            var result = await _service.DeleteAsync(id);
-            return result ? NoContent() : NotFound();
+            try
+            {
+                var result = await _service.DeleteAsync(id);
+                return result ? NoContent() : NotFound();
+            }
+            catch (KhuVucDangSuDungException ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
         }
     }
 }

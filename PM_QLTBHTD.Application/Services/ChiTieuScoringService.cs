@@ -3,6 +3,7 @@ using PM_QLTBHTD.Application.DTOs;
 using PM_QLTBHTD.Application.Exceptions;
 using PM_QLTBHTD.Application.Helpers;
 using PM_QLTBHTD.Application.Interfaces;
+using PM_QLTBHTD.Application.Services.IService;
 using PM_QLTBHTD.Domain.Entities;
 using PM_QLTBHTD.Domain.IRepository;
 
@@ -20,6 +21,7 @@ namespace PM_QLTBHTD.Application.Services
         private readonly IKetQuaPhanLoaiThangRepository _phanLoaiThangRepo;
         private readonly IKetQuaTrungGianRepository _trungGianRepo;
         private readonly IFormulaEngine _formulaEngine;
+        private readonly IScoringEngine _scoringEngine;
 
         public ChiTieuScoringService(
             IAppDbContext db,
@@ -27,7 +29,8 @@ namespace PM_QLTBHTD.Application.Services
             IChiTietKiemTraInputRepository inputRepo,
             IKetQuaPhanLoaiThangRepository phanLoaiThangRepo,
             IKetQuaTrungGianRepository trungGianRepo,
-            IFormulaEngine formulaEngine)
+            IFormulaEngine formulaEngine,
+            IScoringEngine scoringEngine)
         {
             _db = db;
             _chiTietRepo = chiTietRepo;
@@ -35,6 +38,8 @@ namespace PM_QLTBHTD.Application.Services
             _phanLoaiThangRepo = phanLoaiThangRepo;
             _trungGianRepo = trungGianRepo;
             _formulaEngine = formulaEngine;
+            _scoringEngine = scoringEngine;
+
         }
 
         /// <summary>Gộp 1 dòng vào batch ghi CBM_KetQuaTrungGian (audit trail) — commit chung 1 lần
@@ -206,6 +211,7 @@ namespace PM_QLTBHTD.Application.Services
                 await _trungGianRepo.AddRangeAsync(trungGianCanGhi);
 
             await _chiTietRepo.SaveChangesAsync();
+            await _scoringEngine.TinhVaLuuTongDiemAsync(idPhieu, ct);
         }
 
         public async Task TinhLaiToanBoSiAsync(int idPhieu, CancellationToken ct = default)

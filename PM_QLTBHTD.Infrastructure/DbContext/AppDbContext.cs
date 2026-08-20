@@ -44,6 +44,9 @@ namespace PM_QLTBHTD.Infrastructure.Persistence
         public DbSet<CBM_ChiTieu_PhanLoaiNguong> CBM_ChiTieu_PhanLoaiNguong { get; set; }
         public DbSet<CBM_KetQuaPhanLoaiThang> CBM_KetQuaPhanLoaiThang { get; set; }
 
+        // Bảo trì
+        public DbSet<CBM_LichBaoTri> CBM_LichBaoTri { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -92,5 +95,6 @@ namespace PM_QLTBHTD.Infrastructure.Persistence
         IQueryable<ChiTietKiemTra_Input> IAppDbContext.ChiTietKiemTra_Inputs => ChiTietKiemTra_Input.AsQueryable();
         IQueryable<CBM_ChiTieu_PhanLoaiNguong> IAppDbContext.PhanLoaiNguongs => CBM_ChiTieu_PhanLoaiNguong.AsQueryable();
         IQueryable<CBM_KetQuaPhanLoaiThang> IAppDbContext.KetQuaPhanLoaiThangs => CBM_KetQuaPhanLoaiThang.AsQueryable();
+        IQueryable<CBM_LichBaoTri> IAppDbContext.LichBaoTris => CBM_LichBaoTri.AsQueryable();
     }
 }

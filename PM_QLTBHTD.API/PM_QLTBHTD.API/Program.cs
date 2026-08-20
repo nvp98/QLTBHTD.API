@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using PM_QLTBHTD.Application.Interfaces;
 using PM_QLTBHTD.Application.Services;
+using PM_QLTBHTD.Application.Services.IService;
 using PM_QLTBHTD.Domain.IRepository;
 using PM_QLTBHTD.Infrastructure.Persistence;
 using PM_QLTBHTD.Infrastructure.Repository;
@@ -45,6 +46,9 @@ builder.Services.AddScoped<IChiTietKiemTraInputRepository, ChiTietKiemTraInputRe
 builder.Services.AddScoped<IPhanLoaiNguongRepository, PhanLoaiNguongRepository>();
 builder.Services.AddScoped<IKetQuaPhanLoaiThangRepository, KetQuaPhanLoaiThangRepository>();
 
+// Repositories — bảo trì
+builder.Services.AddScoped<ILichBaoTriRepository, LichBaoTriRepository>();
+
 // Services — danh mục
 builder.Services.AddScoped<IKhuVucService, KhuVucService>();
 builder.Services.AddScoped<ILoaiThietBiService, LoaiThietBiService>();
@@ -80,6 +84,9 @@ builder.Services.AddScoped<IScoringEngine, ScoringEngine>();
 
 // Services — báo cáo
 builder.Services.AddScoped<IThongKeService, ThongKeService>();
+
+// Services — bảo trì
+builder.Services.AddScoped<ILichBaoTriService, LichBaoTriService>();
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();

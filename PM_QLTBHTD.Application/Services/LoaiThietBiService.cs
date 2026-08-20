@@ -1,4 +1,8 @@
+using Microsoft.EntityFrameworkCore;
 using PM_QLTBHTD.Application.DTOs;
+using PM_QLTBHTD.Application.Exceptions;
+using PM_QLTBHTD.Application.Interfaces;
+using PM_QLTBHTD.Application.Services.IService;
 using PM_QLTBHTD.Domain.Entities;
 using PM_QLTBHTD.Domain.IRepository;
 
@@ -7,10 +11,12 @@ namespace PM_QLTBHTD.Application.Services
     public class LoaiThietBiService : ILoaiThietBiService
     {
         private readonly ILoaiThietBiRepository _repository;
+        private readonly IAppDbContext _db;
 
-        public LoaiThietBiService(ILoaiThietBiRepository repository)
+        public LoaiThietBiService(ILoaiThietBiRepository repository, IAppDbContext db)
         {
             _repository = repository;
+            _db = db;
         }
 
         public async Task<PagedResult<LoaiThietBiDto>> GetPagedAsync(string? search, int page, int? pageSize)
@@ -70,6 +76,11 @@ namespace PM_QLTBHTD.Application.Services
         {
             var entity = await _repository.GetByIdAsync(id);
             if (entity == null) return false;
+
+            var soThietBiDangDung = await _db.ThietBis.CountAsync(x => x.ID_LoaiTB == id);
+            var soNhomChiTieuDangDung = await _db.NhomChiTieus.CountAsync(x => x.ID_LoaiThietBi == id);
+            if (soThietBiDangDung > 0 || soNhomChiTieuDangDung > 0)
+                throw new LoaiThietBiDangSuDungException(id, soThietBiDangDung, soNhomChiTieuDangDung);
 
             _repository.Delete(entity);
             await _repository.SaveChangesAsync();

@@ -11,6 +11,8 @@ namespace PM_QLTBHTD.Application.DTOs
         public string LoaiNhom { get; set; } = "LEAF";
         public int PhienBan { get; set; }
         public int TrangThai { get; set; }
+        /// <summary>1=Online, 2=Offline, 3=Chuyên sâu (CBM EVNCPC-KT/QT.40). NULL = nhóm tổng hợp thuần.</summary>
+        public int? Tier { get; set; }
         public bool CoCongThuc { get; set; }
         /// <summary>Trọng số canonical của nhóm khi tham gia công thức nhóm cha (NHOM_CON).</summary>
         public decimal? TrongSo_Wi { get; set; }
@@ -34,6 +36,7 @@ namespace PM_QLTBHTD.Application.DTOs
         public string LoaiNhom { get; set; } = "LEAF";
         public int PhienBan { get; set; } = 1;
         public int TrangThai { get; set; } = 1;
+        public int? Tier { get; set; }
         public decimal? TrongSo_Wi { get; set; }
     }
 
@@ -46,6 +49,7 @@ namespace PM_QLTBHTD.Application.DTOs
         public string LoaiNhom { get; set; } = "LEAF";
         public int PhienBan { get; set; }
         public int TrangThai { get; set; }
+        public int? Tier { get; set; }
         public decimal? TrongSo_Wi { get; set; }
     }
 }

@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using PM_QLTBHTD.Application.DTOs;
+using PM_QLTBHTD.Application.Exceptions;
 using PM_QLTBHTD.Application.Interfaces;
+using PM_QLTBHTD.Application.Services.IService;
 using PM_QLTBHTD.Domain.Entities;
 using PM_QLTBHTD.Domain.IRepository;
 
@@ -32,6 +34,7 @@ namespace PM_QLTBHTD.Application.Services
                        LoaiNhom = n.LoaiNhom,
                        PhienBan = n.PhienBan,
                        TrangThai = n.TrangThai,
+                       Tier = n.Tier,
                        TrongSo_Wi = n.TrongSo_Wi,
                        CoCongThuc = _db.CongThucTongHops.Any(c => c.ID_NhomChiTieu == n.ID_NhomChiTieu && c.TrangThai == 1),
                        SoChiTieu = _db.ChiTieus.Count(c => c.ID_NhomChiTieu == n.ID_NhomChiTieu && c.TrangThai == 1)
@@ -80,6 +83,7 @@ namespace PM_QLTBHTD.Application.Services
                 LoaiNhom = dto.LoaiNhom,
                 PhienBan = dto.PhienBan,
                 TrangThai = dto.TrangThai,
+                Tier = dto.Tier,
                 TrongSo_Wi = dto.TrongSo_Wi
             };
             await _repository.AddAsync(entity);
@@ -99,6 +103,7 @@ namespace PM_QLTBHTD.Application.Services
             entity.LoaiNhom = dto.LoaiNhom;
             entity.PhienBan = dto.PhienBan;
             entity.TrangThai = dto.TrangThai;
+            entity.Tier = dto.Tier;
             entity.TrongSo_Wi = dto.TrongSo_Wi;
             _repository.Update(entity);
             await _repository.SaveChangesAsync();
@@ -109,6 +114,13 @@ namespace PM_QLTBHTD.Application.Services
         {
             var entity = await _repository.GetByIdAsync(id);
             if (entity == null) return false;
+
+            var soChiTieu = await _db.ChiTieus.CountAsync(x => x.ID_NhomChiTieu == id);
+            var soNhomCon = await _db.NhomChiTieus.CountAsync(x => x.ID_NhomCha == id);
+            var soPhieu = await _db.PhieuKiemTras.CountAsync(x => x.ID_NhomChiTieu == id);
+            var soCongThucThamChieu = await _db.CongThucBiens.CountAsync(x => x.ID_NhomCon == id);
+            if (soChiTieu > 0 || soNhomCon > 0 || soPhieu > 0 || soCongThucThamChieu > 0)
+                throw new NhomChiTieuDangSuDungException(id, soChiTieu, soNhomCon, soPhieu, soCongThucThamChieu);
 
             _repository.Delete(entity);
             await _repository.SaveChangesAsync();
@@ -132,6 +144,7 @@ namespace PM_QLTBHTD.Application.Services
                 LoaiNhom = x.LoaiNhom,
                 PhienBan = x.PhienBan,
                 TrangThai = x.TrangThai,
+                Tier = x.Tier,
                 TrongSo_Wi = x.TrongSo_Wi,
                 CoCongThuc = x.CoCongThuc
             }).ToList();

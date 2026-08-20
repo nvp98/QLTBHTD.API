@@ -3,6 +3,7 @@ using PM_QLTBHTD.Application.DTOs;
 using PM_QLTBHTD.Application.Exceptions;
 using PM_QLTBHTD.Application.Helpers;
 using PM_QLTBHTD.Application.Interfaces;
+using PM_QLTBHTD.Application.Services.IService;
 using PM_QLTBHTD.Domain.Entities;
 using PM_QLTBHTD.Domain.IRepository;
 
@@ -11,11 +12,14 @@ namespace PM_QLTBHTD.Application.Services
     public class ChiTieuFormulaService : IChiTieuFormulaService
     {
         private readonly IChiTieuFormulaRepository _repository;
+        private readonly IChiTieuFormulaThamSoRepository _thamSoRepository;
         private readonly IAppDbContext _db;
 
-        public ChiTieuFormulaService(IChiTieuFormulaRepository repository, IAppDbContext db)
+        public ChiTieuFormulaService(
+            IChiTieuFormulaRepository repository, IChiTieuFormulaThamSoRepository thamSoRepository, IAppDbContext db)
         {
             _repository = repository;
+            _thamSoRepository = thamSoRepository;
             _db = db;
         }
 
@@ -103,6 +107,18 @@ namespace PM_QLTBHTD.Application.Services
         {
             var entity = await _repository.GetByIdAsync(id);
             if (entity == null) return false;
+
+            // Chặn nếu 1 tham số của Formula KHÁC đang lấy kết quả Formula này làm nguồn
+            // (NguonGiaTri='FORMULA_KETQUA', ID_FormulaNguon=id) — xóa sẽ làm tham số đó dangling.
+            var soThamSoThamChieu = await _db.ChiTieuFormulaThamSos.CountAsync(x => x.ID_FormulaNguon == id);
+            if (soThamSoThamChieu > 0)
+                throw new ChiTieuFormulaDangSuDungException(id, soThamSoThamChieu);
+
+            // Tham số CỦA CHÍNH Formula này là sub-config thuần, không có ý nghĩa độc lập — cascade.
+            var thamSoCuaFormula = await _thamSoRepository.FindAsync(x => x.ID_Formula == id);
+            foreach (var ts in thamSoCuaFormula)
+                _thamSoRepository.Delete(ts);
+            await _thamSoRepository.SaveChangesAsync();
 
             _repository.Delete(entity);
             await _repository.SaveChangesAsync();

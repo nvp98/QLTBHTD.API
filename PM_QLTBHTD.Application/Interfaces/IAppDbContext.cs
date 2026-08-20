@@ -38,5 +38,8 @@ namespace PM_QLTBHTD.Application.Interfaces
         // Phân loại theo thời gian
         IQueryable<CBM_ChiTieu_PhanLoaiNguong> PhanLoaiNguongs { get; }
         IQueryable<CBM_KetQuaPhanLoaiThang> KetQuaPhanLoaiThangs { get; }
+
+        // Bảo trì
+        IQueryable<CBM_LichBaoTri> LichBaoTris { get; }
     }
 }

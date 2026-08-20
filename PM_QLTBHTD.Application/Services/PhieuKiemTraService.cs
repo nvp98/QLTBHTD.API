@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using PM_QLTBHTD.Application.DTOs;
 using PM_QLTBHTD.Application.Exceptions;
 using PM_QLTBHTD.Application.Interfaces;
+using PM_QLTBHTD.Application.Services.IService;
 using PM_QLTBHTD.Domain.Entities;
 using PM_QLTBHTD.Domain.IRepository;
 
@@ -12,6 +13,9 @@ namespace PM_QLTBHTD.Application.Services
         private readonly IPhieuKiemTraRepository _phieuRepo;
         private readonly IChiTietKiemTraRepository _chiTietRepo;
         private readonly IChiTietKiemTraInputRepository _chiTietInputRepo;
+        private readonly IKetQuaNhomRepository _ketQuaNhomRepo;
+        private readonly IKetQuaPhanLoaiThangRepository _ketQuaPhanLoaiThangRepo;
+        private readonly ILichBaoTriRepository _lichBaoTriRepo;
         private readonly IAppDbContext _db;
         private readonly IChiTieuScoringService _scoringService;
         private readonly IScoringEngine _scoringEngine;
@@ -20,6 +24,9 @@ namespace PM_QLTBHTD.Application.Services
             IPhieuKiemTraRepository phieuRepo,
             IChiTietKiemTraRepository chiTietRepo,
             IChiTietKiemTraInputRepository chiTietInputRepo,
+            IKetQuaNhomRepository ketQuaNhomRepo,
+            IKetQuaPhanLoaiThangRepository ketQuaPhanLoaiThangRepo,
+            ILichBaoTriRepository lichBaoTriRepo,
             IAppDbContext db,
             IChiTieuScoringService scoringService,
             IScoringEngine scoringEngine)
@@ -27,6 +34,9 @@ namespace PM_QLTBHTD.Application.Services
             _phieuRepo = phieuRepo;
             _chiTietRepo = chiTietRepo;
             _chiTietInputRepo = chiTietInputRepo;
+            _ketQuaNhomRepo = ketQuaNhomRepo;
+            _ketQuaPhanLoaiThangRepo = ketQuaPhanLoaiThangRepo;
+            _lichBaoTriRepo = lichBaoTriRepo;
             _db = db;
             _scoringService = scoringService;
             _scoringEngine = scoringEngine;
@@ -88,7 +98,7 @@ namespace PM_QLTBHTD.Application.Services
             var query = ApplyFilter(JoinQuery(), search, idTram, idLoaiTB, idThietBi, tuNgay, denNgay);
 
             var total = await query.CountAsync();
-            var ordered = query.OrderByDescending(x => x.NgayKiemTra);
+            var ordered = query.OrderByDescending(x => x.NgayKiemTra).ThenByDescending(x => x.ID_Phieu);
             var items = await (pageSize.HasValue
                 ? ordered.Skip((page - 1) * pageSize.Value).Take(pageSize.Value)
                 : ordered).ToListAsync();
@@ -326,6 +336,25 @@ namespace PM_QLTBHTD.Application.Services
 
             await _chiTietRepo.DeleteByPhieuAsync(id);
             await _chiTietInputRepo.DeleteByPhieuAsync(id);
+
+            // Cache/snapshot theo IDPhieu — dọn cùng để không để lại rác trỏ tới phiếu đã xóa.
+            // (CBM_KetQuaTrungGian là audit trail APPEND-only theo thiết kế, cố tình KHÔNG xóa theo.)
+            foreach (var kq in await _ketQuaNhomRepo.FindAsync(x => x.IDPhieu == id))
+                _ketQuaNhomRepo.Delete(kq);
+            await _ketQuaNhomRepo.SaveChangesAsync();
+
+            foreach (var pl in await _ketQuaPhanLoaiThangRepo.FindAsync(x => x.IDPhieu == id))
+                _ketQuaPhanLoaiThangRepo.Delete(pl);
+            await _ketQuaPhanLoaiThangRepo.SaveChangesAsync();
+
+            // LichBaoTri.ID_PhieuKetQua trỏ tới phiếu này (nullable) — gỡ tham chiếu tránh treo.
+            foreach (var lbt in await _lichBaoTriRepo.FindAsync(x => x.ID_PhieuKetQua == id))
+            {
+                lbt.ID_PhieuKetQua = null;
+                _lichBaoTriRepo.Update(lbt);
+            }
+            await _lichBaoTriRepo.SaveChangesAsync();
+
             _phieuRepo.Delete(entity);
             await _phieuRepo.SaveChangesAsync();
             return true;

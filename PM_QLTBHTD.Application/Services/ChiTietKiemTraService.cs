@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using PM_QLTBHTD.Application.DTOs;
 using PM_QLTBHTD.Application.Interfaces;
+using PM_QLTBHTD.Application.Services.IService;
 using PM_QLTBHTD.Domain.Entities;
 using PM_QLTBHTD.Domain.IRepository;
 
@@ -9,11 +10,14 @@ namespace PM_QLTBHTD.Application.Services
     public class ChiTietKiemTraService : IChiTietKiemTraService
     {
         private readonly IChiTietKiemTraRepository _repository;
+        private readonly IChiTietKiemTraInputRepository _inputRepository;
         private readonly IAppDbContext _db;
 
-        public ChiTietKiemTraService(IChiTietKiemTraRepository repository, IAppDbContext db)
+        public ChiTietKiemTraService(
+            IChiTietKiemTraRepository repository, IChiTietKiemTraInputRepository inputRepository, IAppDbContext db)
         {
             _repository = repository;
+            _inputRepository = inputRepository;
             _db = db;
         }
 
@@ -79,6 +83,14 @@ namespace PM_QLTBHTD.Application.Services
         {
             var entity = await _repository.GetByIdAsync(id);
             if (entity == null) return false;
+
+            // ChiTietKiemTra_Input khớp theo (IDPhieu, ID_ChiTieu) — không theo ID_ChiTiet — nên phải
+            // dọn thủ công ở đây, khác với cascade qua IDPhieu khi xóa cả PhieuKiemTra.
+            var inputs = await _inputRepository.FindAsync(
+                x => x.IDPhieu == entity.IDPhieu && x.ID_ChiTieu == entity.ID_ChiTieu);
+            foreach (var inp in inputs)
+                _inputRepository.Delete(inp);
+            await _inputRepository.SaveChangesAsync();
 
             _repository.Delete(entity);
             await _repository.SaveChangesAsync();

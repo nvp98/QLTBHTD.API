@@ -21,6 +21,11 @@ namespace PM_QLTBHTD.Domain.Entities
         /// <summary>'LEAF' = có ChiTieu con trực tiếp; 'COMPOSITE' = gộp nhiều NhomChiTieu con.</summary>
         public string LoaiNhom { get; set; } = "LEAF";
 
+        /// <summary>Phân cấp kiểm tra theo tài liệu CBM EVNCPC-KT/QT.40: 1=Online, 2=Offline,
+        /// 3=Chuyên sâu. NULL cho nhóm tổng hợp thuần (vd CHI1/TS1) — nhóm đó gộp điểm từ nhiều
+        /// Tier khác nhau nên không gán 1 Tier duy nhất được.</summary>
+        public int? Tier { get; set; }
+
         /// <summary>
         /// Trọng số CANONICAL của nhóm khi được tham chiếu làm biến NHOM_CON trong công thức
         /// tổng hợp của nhóm cha (vd "Chất lượng dầu" Wi=6 khi tham gia TS1). Dùng làm fallback
