@@ -8,6 +8,7 @@ namespace PM_QLTBHTD.Domain.Entities
         public int ID_ThietBi { get; set; }
         public int ID_Tram { get; set; }
         public int ID_LoaiTB { get; set; }
+        public int? ID_NganLo { get; set; }
 
         public string TenThietBi { get; set; } = string.Empty;
         public string? SoHieu { get; set; }

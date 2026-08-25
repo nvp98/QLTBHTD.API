@@ -26,6 +26,8 @@ namespace PM_QLTBHTD.Application.Services
                    from t in tramGroup.DefaultIfEmpty()
                    join l in _db.LoaiThietBis on tb.ID_LoaiTB equals l.ID_LoaiThietBi into loaiGroup
                    from l in loaiGroup.DefaultIfEmpty()
+                   join n in _db.NganLos on tb.ID_NganLo equals (int?)n.ID_NganLo into nganLoGroup
+                   from n in nganLoGroup.DefaultIfEmpty()
                    select new ThietBiDto
                    {
                        ID_ThietBi = tb.ID_ThietBi,
@@ -33,6 +35,8 @@ namespace PM_QLTBHTD.Application.Services
                        TenTram = t != null ? t.TenTram : string.Empty,
                        ID_LoaiTB = tb.ID_LoaiTB,
                        TenLoaiTB = l != null ? l.TenLoaiTB : string.Empty,
+                       ID_NganLo = tb.ID_NganLo,
+                       TenNganLo = n != null ? n.TenNganLo : null,
                        TenThietBi = tb.TenThietBi,
                        SoHieu = tb.SoHieu,
                        NhanHieu = tb.NhanHieu,
@@ -67,6 +71,9 @@ namespace PM_QLTBHTD.Application.Services
         public async Task<IEnumerable<ThietBiDto>> GetByLoaiThietBiAsync(int idLoaiTB)
             => await JoinQuery().Where(x => x.ID_LoaiTB == idLoaiTB).ToListAsync();
 
+        public async Task<IEnumerable<ThietBiDto>> GetByNganLoAsync(int idNganLo)
+            => await JoinQuery().Where(x => x.ID_NganLo == idNganLo).ToListAsync();
+
         public async Task<ThietBiDto?> GetByIdAsync(int id)
             => await JoinQuery().FirstOrDefaultAsync(x => x.ID_ThietBi == id);
 
@@ -76,6 +83,7 @@ namespace PM_QLTBHTD.Application.Services
             {
                 ID_Tram = dto.ID_Tram,
                 ID_LoaiTB = dto.ID_LoaiTB,
+                ID_NganLo = dto.ID_NganLo,
                 TenThietBi = dto.TenThietBi,
                 SoHieu = dto.SoHieu,
                 NhanHieu = dto.NhanHieu,
@@ -96,6 +104,7 @@ namespace PM_QLTBHTD.Application.Services
 
             entity.ID_Tram = dto.ID_Tram;
             entity.ID_LoaiTB = dto.ID_LoaiTB;
+            entity.ID_NganLo = dto.ID_NganLo;
             entity.TenThietBi = dto.TenThietBi;
             entity.SoHieu = dto.SoHieu;
             entity.NhanHieu = dto.NhanHieu;

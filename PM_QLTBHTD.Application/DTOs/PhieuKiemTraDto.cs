@@ -9,6 +9,8 @@ namespace PM_QLTBHTD.Application.DTOs
         public string? TenTram { get; set; }
         public int ID_LoaiTB { get; set; }
         public string? TenLoaiTB { get; set; }
+        public int? ID_NganLo { get; set; }
+        public string? TenNganLo { get; set; }
         public int? ID_NhomChiTieu { get; set; }
         public string? TenNhom { get; set; }
         public DateTime NgayKiemTra { get; set; }
@@ -39,6 +41,8 @@ namespace PM_QLTBHTD.Application.DTOs
     public class CreatePhieuKiemTraDto
     {
         public int ID_ThietBi { get; set; }
+        /// <summary>Ngăn lộ nếu phiếu này tạo hàng loạt theo đợt ngắt điện kiểm tra chung. NULL = tạo riêng lẻ.</summary>
+        public int? ID_NganLo { get; set; }
         /// <summary>Nhóm chỉ tiêu cần đo. NULL = kiểm tra toàn diện.</summary>
         public int? ID_NhomChiTieu { get; set; }
         /// <summary>Ngày kiểm tra. NULL = không chọn, lấy ngày giờ hiện tại lúc lưu phiếu.</summary>

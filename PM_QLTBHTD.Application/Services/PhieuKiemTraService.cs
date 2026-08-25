@@ -50,6 +50,8 @@ namespace PM_QLTBHTD.Application.Services
                    join loai in _db.LoaiThietBis on tb.ID_LoaiTB equals loai.ID_LoaiThietBi
                    join nhom in _db.NhomChiTieus on p.ID_NhomChiTieu equals nhom.ID_NhomChiTieu into nhomJoin
                    from nhom in nhomJoin.DefaultIfEmpty()
+                   join nl in _db.NganLos on p.ID_NganLo equals (int?)nl.ID_NganLo into nganLoJoin
+                   from nl in nganLoJoin.DefaultIfEmpty()
                    select new PhieuKiemTraDto
                    {
                        ID_Phieu       = p.ID_Phieu,
@@ -59,6 +61,8 @@ namespace PM_QLTBHTD.Application.Services
                        TenTram        = tram.TenTram,
                        ID_LoaiTB      = tb.ID_LoaiTB,
                        TenLoaiTB      = loai.TenLoaiTB,
+                       ID_NganLo      = p.ID_NganLo,
+                       TenNganLo      = nl != null ? nl.TenNganLo : null,
                        ID_NhomChiTieu = p.ID_NhomChiTieu,
                        TenNhom        = nhom != null ? nhom.TenNhom : null,
                        NgayKiemTra    = p.NgayKiemTra,
@@ -74,7 +78,7 @@ namespace PM_QLTBHTD.Application.Services
         /// so sánh theo NGÀY LỊCH (bỏ phần giờ) để FE khỏi phải tự tính start/end-of-day.</summary>
         private static IQueryable<PhieuKiemTraDto> ApplyFilter(
             IQueryable<PhieuKiemTraDto> query,
-            string? search, int? idTram, int? idLoaiTB, int? idThietBi, DateTime? tuNgay, DateTime? denNgay)
+            string? search, int? idTram, int? idLoaiTB, int? idThietBi, DateTime? tuNgay, DateTime? denNgay, int? idNganLo = null)
         {
             if (!string.IsNullOrEmpty(search))
                 query = query.Where(x => x.TenThietBi.Contains(search) || (x.NguoiKiemTra != null && x.NguoiKiemTra.Contains(search)));
@@ -88,6 +92,8 @@ namespace PM_QLTBHTD.Application.Services
                 query = query.Where(x => x.NgayKiemTra >= tuNgay.Value.Date);
             if (denNgay.HasValue)
                 query = query.Where(x => x.NgayKiemTra < denNgay.Value.Date.AddDays(1));
+            if (idNganLo.HasValue)
+                query = query.Where(x => x.ID_NganLo == idNganLo.Value);
             return query;
         }
 
@@ -122,6 +128,10 @@ namespace PM_QLTBHTD.Application.Services
                 .OrderByDescending(x => x.NgayKiemTra)
                 .ToListAsync();
         }
+
+        public async Task<IEnumerable<PhieuKiemTraDto>> GetByNganLoAsync(int idNganLo)
+            => await JoinQuery().Where(x => x.ID_NganLo == idNganLo)
+                                .OrderByDescending(x => x.NgayKiemTra).ToListAsync();
 
         public async Task<IEnumerable<PhieuKiemTraDto>> GetByThietBiAsync(int idThietBi)
             => await JoinQuery().Where(x => x.ID_ThietBi == idThietBi)
@@ -255,6 +265,7 @@ namespace PM_QLTBHTD.Application.Services
             var phieu = new PhieuKiemTra
             {
                 ID_ThietBi     = dto.ID_ThietBi,
+                ID_NganLo      = dto.ID_NganLo,
                 ID_NhomChiTieu = dto.ID_NhomChiTieu,
                 NgayKiemTra    = ngayKiemTra,
                 NguoiKiemTra   = dto.NguoiKiemTra,
@@ -300,6 +311,9 @@ namespace PM_QLTBHTD.Application.Services
             // Không chặn tạo phiếu nếu cây chưa đủ công thức/dữ liệu — ScoringEngine tự trả null
             // cho các lỗi tính toán thông thường; chỉ NhieuNhomGocException (lỗi cấu hình loại
             // thiết bị có >1 nhóm gốc) là đáng chú ý nhưng cũng không nên chặn việc lưu phiếu.
+            // Lưu ý: chỉ tính đúng phiếu vừa tạo, KHÔNG lan sang các phiếu khác của thiết bị — nếu
+            // sau này nhập liệu dữ liệu cũ (backfill quá khứ) có thể cần tính lại thủ công cho các
+            // phiếu liên quan.
             try
             {
                 await _scoringEngine.TinhVaLuuTongDiemAsync(phieu.ID_Phieu);

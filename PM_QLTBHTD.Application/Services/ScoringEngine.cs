@@ -81,15 +81,21 @@ namespace PM_QLTBHTD.Application.Services
             var thietBi = await _db.ThietBis.FirstOrDefaultAsync(t => t.ID_ThietBi == phieu.ID_ThietBi, ct);
             if (thietBi == null) return null;
 
-            var goc = await _db.NhomChiTieus
-                .Where(n => n.ID_LoaiThietBi == thietBi.ID_LoaiTB && n.ID_NhomCha == null && n.TrangThai == 1)
+            // Chỉ nhóm gốc kiểu COMPOSITE mới tính là "cây CHI" thật — nhiều nhóm LÁ độc lập không
+            // cha (loại thiết bị theo quy trình KHÔNG có CHI cấp 1/2/3, vd DCL/TU/TI/CS: mỗi hạng
+            // mục kiểm tra song song, không gộp thành 1 chỉ số) là trạng thái HỢP LỆ, không phải lỗi
+            // cấu hình — trả null (chưa tính CSSK) như khi cây chưa cấu hình xong. NhieuNhomGocException
+            // chỉ ném khi có ≥2 nhóm COMPOSITE gốc THẬT SỰ cạnh tranh nhau (lỗi cấu hình cần sửa).
+            var gocComposite = await _db.NhomChiTieus
+                .Where(n => n.ID_LoaiThietBi == thietBi.ID_LoaiTB && n.ID_NhomCha == null
+                            && n.TrangThai == 1 && n.LoaiNhom == "COMPOSITE")
                 .Select(n => n.ID_NhomChiTieu)
                 .ToListAsync(ct);
 
-            if (goc.Count == 0) return null; // cây chưa cấu hình xong — chưa tính được, không phải lỗi
-            if (goc.Count > 1) throw new NhieuNhomGocException(thietBi.ID_LoaiTB, goc.Count);
+            if (gocComposite.Count == 0) return null; // không có CHI cho loại thiết bị này, hoặc cây chưa cấu hình xong — không phải lỗi
+            if (gocComposite.Count > 1) throw new NhieuNhomGocException(thietBi.ID_LoaiTB, gocComposite.Count);
 
-            var idNhomGoc = goc[0];
+            var idNhomGoc = gocComposite[0];
 
             decimal diem;
             try

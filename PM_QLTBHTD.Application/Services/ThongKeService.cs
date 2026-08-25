@@ -142,15 +142,29 @@ namespace PM_QLTBHTD.Application.Services
             return result;
         }
 
+        /// <summary>
+        /// Cảnh báo thiết bị mức 0-10 &lt; 6, xét PHIẾU MỚI NHẤT của mỗi thiết bị. Thiết bị có CSSK
+        /// tổng (TongDiem_Soqt) dùng luôn giá trị đó — như trước. Thiết bị KHÔNG có CSSK tổng (loại
+        /// thiết bị theo quy trình không tính CHI cấp 1/2/3, vd DCL/TU/TI/CS — chỉ nhập liệu + cảnh
+        /// báo theo từng chỉ tiêu) trước đây bị bỏ sót hoàn toàn khỏi danh sách này vì lọc thẳng
+        /// theo TongDiem_Soqt — giờ fallback lấy Sᵢ THẤP NHẤT trong các chỉ tiêu đã đo của phiếu đó
+        /// làm đại diện mức cảnh báo, để nhóm thiết bị này cũng lên được dashboard.
+        /// </summary>
         public async Task<IEnumerable<CanhBaoThietBiDto>> GetCanhBaoAsync()
         {
-            // Lay tat ca phieu co CSSK < 6 (thang 0-10)
-            var rows = await (
+            // Phiếu mới nhất của mỗi thiết bị — KHÔNG lọc theo TongDiem_Soqt ở bước này vì cần xét
+            // cả trường hợp null (fallback qua Sᵢ chỉ tiêu).
+            var latestIds = await _db.PhieuKiemTras
+                .GroupBy(p => p.ID_ThietBi)
+                .Select(g => g.Max(x => x.ID_Phieu))
+                .ToListAsync();
+
+            var phieuInfo = await (
                 from p in _db.PhieuKiemTras
                 join tb   in _db.ThietBis      on p.ID_ThietBi    equals tb.ID_ThietBi
                 join tram in _db.TramDiens     on tb.ID_Tram       equals tram.IDTram
                 join loai in _db.LoaiThietBis  on tb.ID_LoaiTB     equals loai.ID_LoaiThietBi
-                where p.TongDiem_Soqt != null && p.TongDiem_Soqt < 6
+                where latestIds.Contains(p.ID_Phieu)
                 select new
                 {
                     p.ID_ThietBi,
@@ -164,25 +178,68 @@ namespace PM_QLTBHTD.Application.Services
                 }
             ).ToListAsync();
 
-            // Chi giu phieu moi nhat moi thiet bi
-            return rows
-                .GroupBy(r => r.ID_ThietBi)
-                .Select(g => g.OrderByDescending(r => r.NgayKiemTra).First())
-                .OrderBy(r => r.TongDiem_Soqt)
-                .Select(r => new CanhBaoThietBiDto
+            var idsThieuTongDiem = phieuInfo.Where(x => x.TongDiem_Soqt == null).Select(x => x.ID_Phieu).ToList();
+
+            var siThapNhatMap = idsThieuTongDiem.Count == 0
+                ? new Dictionary<int, (decimal Si, string TenChiTieu)>()
+                : (await (
+                    from ct in _db.ChiTietKiemTras
+                    join c in _db.ChiTieus on ct.ID_ChiTieu equals c.ID_ChiTieu
+                    where idsThieuTongDiem.Contains(ct.IDPhieu) && ct.Diem_Si_DatDuoc != null
+                    select new { ct.IDPhieu, Si = ct.Diem_Si_DatDuoc!.Value, c.TenChiTieu }
+                ).ToListAsync())
+                .GroupBy(x => x.IDPhieu)
+                .ToDictionary(g => g.Key, g =>
                 {
-                    ID_ThietBi    = r.ID_ThietBi,
-                    TenThietBi    = r.TenThietBi,
-                    TenTram       = r.TenTram,
-                    KyHieu        = r.KyHieu,
-                    ID_Phieu      = r.ID_Phieu,
-                    NgayKiemTra   = r.NgayKiemTra,
-                    TongDiem_Soqt = r.TongDiem_Soqt,
-                    CapDoCanhBao  = r.CapDoCanhBao
-                        ?? ((double?)r.TongDiem_Soqt >= 4 ? "Chu y"
-                           : (double?)r.TongDiem_Soqt >= 2 ? "Canh bao"
+                    var thapNhat = g.OrderBy(x => x.Si).First();
+                    return (thapNhat.Si, thapNhat.TenChiTieu);
+                });
+
+            var result = new List<CanhBaoThietBiDto>();
+            foreach (var p in phieuInfo)
+            {
+                decimal diemHienThi;
+                string nguonDiem;
+                string? tenChiTieuThapNhat = null;
+
+                if (p.TongDiem_Soqt != null)
+                {
+                    diemHienThi = p.TongDiem_Soqt.Value;
+                    nguonDiem = "CSSK";
+                }
+                else if (siThapNhatMap.TryGetValue(p.ID_Phieu, out var thapNhat))
+                {
+                    diemHienThi = thapNhat.Si;
+                    nguonDiem = "CHI_TIEU";
+                    tenChiTieuThapNhat = thapNhat.TenChiTieu;
+                }
+                else
+                {
+                    continue; // chưa đo chỉ tiêu nào cả — không đủ dữ liệu để đánh giá
+                }
+
+                if (diemHienThi >= 6) continue;
+
+                result.Add(new CanhBaoThietBiDto
+                {
+                    ID_ThietBi          = p.ID_ThietBi,
+                    TenThietBi          = p.TenThietBi,
+                    TenTram             = p.TenTram,
+                    KyHieu              = p.KyHieu,
+                    ID_Phieu            = p.ID_Phieu,
+                    NgayKiemTra         = p.NgayKiemTra,
+                    TongDiem_Soqt       = p.TongDiem_Soqt,
+                    DiemHienThi         = diemHienThi,
+                    NguonDiem           = nguonDiem,
+                    TenChiTieuThapNhat  = tenChiTieuThapNhat,
+                    CapDoCanhBao        = p.CapDoCanhBao
+                        ?? ((double)diemHienThi >= 4 ? "Chu y"
+                           : (double)diemHienThi >= 2 ? "Canh bao"
                            : "Nguy hiem"),
                 });
+            }
+
+            return result.OrderBy(r => r.DiemHienThi);
         }
     }
 }

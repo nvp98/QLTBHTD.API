@@ -7,11 +7,11 @@ namespace PM_QLTBHTD.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class ThietBiController : ControllerBase
+    public class NganLoController : ControllerBase
     {
-        private readonly IThietBiService _service;
+        private readonly INganLoService _service;
 
-        public ThietBiController(IThietBiService service)
+        public NganLoController(INganLoService service)
         {
             _service = service;
         }
@@ -28,14 +28,6 @@ namespace PM_QLTBHTD.API.Controllers
         public async Task<IActionResult> GetByTram(int idTram)
             => Ok(await _service.GetByTramAsync(idTram));
 
-        [HttpGet("by-loai/{idLoaiTB}")]
-        public async Task<IActionResult> GetByLoai(int idLoaiTB)
-            => Ok(await _service.GetByLoaiThietBiAsync(idLoaiTB));
-
-        [HttpGet("by-nganlo/{idNganLo}")]
-        public async Task<IActionResult> GetByNganLo(int idNganLo)
-            => Ok(await _service.GetByNganLoAsync(idNganLo));
-
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)
         {
@@ -44,14 +36,14 @@ namespace PM_QLTBHTD.API.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> Create([FromBody] CreateThietBiDto dto)
+        public async Task<IActionResult> Create([FromBody] CreateNganLoDto dto)
         {
             var created = await _service.CreateAsync(dto);
-            return CreatedAtAction(nameof(GetById), new { id = created.ID_ThietBi }, created);
+            return CreatedAtAction(nameof(GetById), new { id = created.ID_NganLo }, created);
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int id, [FromBody] UpdateThietBiDto dto)
+        public async Task<IActionResult> Update(int id, [FromBody] UpdateNganLoDto dto)
         {
             var updated = await _service.UpdateAsync(id, dto);
             return updated == null ? NotFound() : Ok(updated);
@@ -65,7 +57,7 @@ namespace PM_QLTBHTD.API.Controllers
                 var result = await _service.DeleteAsync(id);
                 return result ? NoContent() : NotFound();
             }
-            catch (ThietBiDangSuDungException ex)
+            catch (NganLoDangSuDungException ex)
             {
                 return BadRequest(new { error = ex.Message });
             }

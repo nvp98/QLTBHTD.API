@@ -11,6 +11,7 @@ namespace PM_QLTBHTD.Application.Interfaces
         IQueryable<CBM_KhuVuc> KhuVucs { get; }
         IQueryable<CBM_LoaiThietBi> LoaiThietBis { get; }
         IQueryable<CBM_TramDien> TramDiens { get; }
+        IQueryable<CBM_NganLo> NganLos { get; }
         IQueryable<CBM_ThietBi> ThietBis { get; }
         IQueryable<CBM_ThongSo> ThongSos { get; }
         IQueryable<CBM_ThietBi_ThongSo> ThietBiThongSos { get; }

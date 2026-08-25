@@ -7,6 +7,8 @@ namespace PM_QLTBHTD.Application.DTOs
         public string TenTram { get; set; } = string.Empty;
         public int ID_LoaiTB { get; set; }
         public string TenLoaiTB { get; set; } = string.Empty;
+        public int? ID_NganLo { get; set; }
+        public string? TenNganLo { get; set; }
         public string TenThietBi { get; set; } = string.Empty;
         public string? SoHieu { get; set; }
         public string? NhanHieu { get; set; }
@@ -20,6 +22,7 @@ namespace PM_QLTBHTD.Application.DTOs
     {
         public int ID_Tram { get; set; }
         public int ID_LoaiTB { get; set; }
+        public int? ID_NganLo { get; set; }
         public string TenThietBi { get; set; } = string.Empty;
         public string? SoHieu { get; set; }
         public string? NhanHieu { get; set; }
@@ -33,6 +36,7 @@ namespace PM_QLTBHTD.Application.DTOs
     {
         public int ID_Tram { get; set; }
         public int ID_LoaiTB { get; set; }
+        public int? ID_NganLo { get; set; }
         public string TenThietBi { get; set; } = string.Empty;
         public string? SoHieu { get; set; }
         public string? NhanHieu { get; set; }

@@ -13,6 +13,8 @@ namespace PM_QLTBHTD.Application.Services.IService
         Task<IEnumerable<PhieuKiemTraDto>> GetLatestPerThietBiAsync(
             string? search, int? idTram, int? idLoaiTB, int? idThietBi, DateTime? tuNgay, DateTime? denNgay);
         Task<IEnumerable<PhieuKiemTraDto>> GetByThietBiAsync(int idThietBi);
+        /// <summary>Các phiếu tạo cùng đợt kiểm tra ngăn lộ (nhóm theo ID_NganLo) — dùng để xem/báo cáo theo đợt.</summary>
+        Task<IEnumerable<PhieuKiemTraDto>> GetByNganLoAsync(int idNganLo);
         Task<IEnumerable<PhieuKiemTraDto>> GetByNgayAsync(DateTime tuNgay, DateTime denNgay);
         Task<PhieuKiemTraDetailDto?> GetDetailAsync(int idPhieu);
         /// <summary>Toàn bộ lịch sử đo (mọi phiếu) của 1 chỉ tiêu trên 1 thiết bị, mới nhất trước —

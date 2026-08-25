@@ -47,5 +47,17 @@ namespace PM_QLTBHTD.Application.DTOs
         public DateTime NgayKiemTra { get; set; }
         public decimal? TongDiem_Soqt { get; set; }
         public string CapDoCanhBao { get; set; } = string.Empty;
+
+        /// <summary>Điểm dùng để phân loại/sắp xếp/tô màu — bằng TongDiem_Soqt nếu thiết bị có CSSK
+        /// tổng; nếu không (loại thiết bị theo quy trình không tính CHI, vd DCL/TU/TI/CS) thì lấy
+        /// Sᵢ THẤP NHẤT trong các chỉ tiêu đã đo của phiếu mới nhất làm đại diện mức cảnh báo.</summary>
+        public decimal DiemHienThi { get; set; }
+
+        /// <summary>'CSSK' = DiemHienThi lấy từ TongDiem_Soqt; 'CHI_TIEU' = lấy từ Sᵢ thấp nhất
+        /// 1 chỉ tiêu (thiết bị không có CSSK tổng).</summary>
+        public string NguonDiem { get; set; } = "CSSK";
+
+        /// <summary>Tên chỉ tiêu có Sᵢ thấp nhất — chỉ có giá trị khi NguonDiem='CHI_TIEU'.</summary>
+        public string? TenChiTieuThapNhat { get; set; }
     }
 }

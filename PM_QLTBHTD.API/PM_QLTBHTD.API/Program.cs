@@ -17,6 +17,7 @@ builder.Services.AddScoped<IAppDbContext>(sp => sp.GetRequiredService<AppDbConte
 builder.Services.AddScoped<IKhuVucRepository, KhuVucRepository>();
 builder.Services.AddScoped<ILoaiThietBiRepository, LoaiThietBiRepository>();
 builder.Services.AddScoped<ITramDienRepository, TramDienRepository>();
+builder.Services.AddScoped<INganLoRepository, NganLoRepository>();
 builder.Services.AddScoped<IThietBiRepository, ThietBiRepository>();
 
 // Repositories — chỉ tiêu đánh giá
@@ -53,6 +54,7 @@ builder.Services.AddScoped<ILichBaoTriRepository, LichBaoTriRepository>();
 builder.Services.AddScoped<IKhuVucService, KhuVucService>();
 builder.Services.AddScoped<ILoaiThietBiService, LoaiThietBiService>();
 builder.Services.AddScoped<ITramDienService, TramDienService>();
+builder.Services.AddScoped<INganLoService, NganLoService>();
 builder.Services.AddScoped<IThietBiService, ThietBiService>();
 
 // Services — chỉ tiêu

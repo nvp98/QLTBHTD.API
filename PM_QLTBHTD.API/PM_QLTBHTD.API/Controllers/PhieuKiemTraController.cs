@@ -34,6 +34,10 @@ namespace PM_QLTBHTD.API.Controllers
         public async Task<IActionResult> GetByThietBi(int idThietBi)
             => Ok(await _service.GetByThietBiAsync(idThietBi));
 
+        [HttpGet("by-nganlo/{idNganLo}")]
+        public async Task<IActionResult> GetByNganLo(int idNganLo)
+            => Ok(await _service.GetByNganLoAsync(idNganLo));
+
         [HttpGet("by-ngay")]
         public async Task<IActionResult> GetByNgay([FromQuery] DateTime tuNgay, [FromQuery] DateTime denNgay)
             => Ok(await _service.GetByNgayAsync(tuNgay, denNgay));

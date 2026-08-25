@@ -15,6 +15,7 @@ namespace PM_QLTBHTD.Infrastructure.Persistence
         public DbSet<CBM_KhuVuc> CBM_KhuVuc { get; set; }
         public DbSet<CBM_LoaiThietBi> CBM_LoaiThietBi { get; set; }
         public DbSet<CBM_TramDien> CBM_TramDien { get; set; }
+        public DbSet<CBM_NganLo> CBM_NganLo { get; set; }
         public DbSet<CBM_ThietBi> CBM_ThietBi { get; set; }
         public DbSet<CBM_ThongSo> CBM_ThongSo { get; set; }
         public DbSet<CBM_ThietBi_ThongSo> CBM_ThietBi_ThongSo { get; set; }
@@ -76,6 +77,7 @@ namespace PM_QLTBHTD.Infrastructure.Persistence
         IQueryable<CBM_KhuVuc> IAppDbContext.KhuVucs => CBM_KhuVuc.AsQueryable();
         IQueryable<CBM_LoaiThietBi> IAppDbContext.LoaiThietBis => CBM_LoaiThietBi.AsQueryable();
         IQueryable<CBM_TramDien> IAppDbContext.TramDiens => CBM_TramDien.AsQueryable();
+        IQueryable<CBM_NganLo> IAppDbContext.NganLos => CBM_NganLo.AsQueryable();
         IQueryable<CBM_ThietBi> IAppDbContext.ThietBis => CBM_ThietBi.AsQueryable();
         IQueryable<CBM_ThongSo> IAppDbContext.ThongSos => CBM_ThongSo.AsQueryable();
         IQueryable<CBM_ThietBi_ThongSo> IAppDbContext.ThietBiThongSos => CBM_ThietBi_ThongSo.AsQueryable();
