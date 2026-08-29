@@ -1,4 +1,5 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using PM_QLTBHTD.Application.DTOs;
 using PM_QLTBHTD.Application.Exceptions;
 using PM_QLTBHTD.Application.Services.IService;
@@ -7,13 +8,14 @@ namespace PM_QLTBHTD.API.Controllers
 {
     [ApiController]
     [Route("api/thongso")]
+    [Authorize(Roles = "Admin,KySuCauHinh,GiamDoc")]
     public class ThongSoController : ControllerBase
     {
         private readonly IThongSoService _service;
 
         public ThongSoController(IThongSoService service) => _service = service;
 
-        [HttpGet]
+        [HttpGet("get-all-thongso")]
         public async Task<IActionResult> GetAllThongSo()
             => Ok(await _service.GetAllAsync());
 
@@ -24,7 +26,8 @@ namespace PM_QLTBHTD.API.Controllers
             return item == null ? NotFound() : Ok(item);
         }
 
-        [HttpPost]
+        [HttpPost("create-thongso")]
+        [Authorize(Roles = "Admin,KySuCauHinh")]
         public async Task<IActionResult> CreateThongSo([FromBody] CreateThongSoDto dto)
         {
             var created = await _service.CreateAsync(dto);
@@ -32,6 +35,7 @@ namespace PM_QLTBHTD.API.Controllers
         }
 
         [HttpPut("{id}")]
+        [Authorize(Roles = "Admin,KySuCauHinh")]
         public async Task<IActionResult> UpdateThongSo(int id, [FromBody] UpdateThongSoDto dto)
         {
             var updated = await _service.UpdateAsync(id, dto);
@@ -39,6 +43,7 @@ namespace PM_QLTBHTD.API.Controllers
         }
 
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin,KySuCauHinh")]
         public async Task<IActionResult> DeleteThongSo(int id)
         {
             try

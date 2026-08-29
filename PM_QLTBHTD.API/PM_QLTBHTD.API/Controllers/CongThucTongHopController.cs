@@ -1,4 +1,5 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using PM_QLTBHTD.Application.DTOs;
 using PM_QLTBHTD.Application.Services.IService;
 
@@ -6,6 +7,7 @@ namespace PM_QLTBHTD.API.Controllers
 {
     [ApiController]
     [Route("api/cong-thuc-tong-hop")]
+    [Authorize(Roles = "Admin,KySuCauHinh,GiamDoc")]
     public class CongThucTongHopController : ControllerBase
     {
         private readonly ICongThucTongHopService _service;
@@ -37,7 +39,8 @@ namespace PM_QLTBHTD.API.Controllers
         public async Task<IActionResult> ValidateVongLap(int idLoaiThietBi)
             => Ok(await _service.ValidateVongLapAsync(idLoaiThietBi));
 
-        [HttpPost]
+        [HttpPost("create-congthuctonghop")]
+        [Authorize(Roles = "Admin,KySuCauHinh")]
         public async Task<IActionResult> Create([FromBody] CreateCongThucTongHopDto dto)
         {
             var created = await _service.CreateAsync(dto);
@@ -45,6 +48,7 @@ namespace PM_QLTBHTD.API.Controllers
         }
 
         [HttpPut("{id}")]
+        [Authorize(Roles = "Admin,KySuCauHinh")]
         public async Task<IActionResult> Update(int id, [FromBody] UpdateCongThucTongHopDto dto)
         {
             var updated = await _service.UpdateAsync(id, dto);
@@ -52,6 +56,7 @@ namespace PM_QLTBHTD.API.Controllers
         }
 
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin,KySuCauHinh")]
         public async Task<IActionResult> Delete(int id)
         {
             var result = await _service.DeleteAsync(id);

@@ -1,4 +1,5 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using PM_QLTBHTD.Application.DTOs;
 using PM_QLTBHTD.Application.Exceptions;
 using PM_QLTBHTD.Application.Services.IService;
@@ -39,6 +40,7 @@ namespace PM_QLTBHTD.API.Controllers
         /// Body: NhapPhieuKiemTraRequest (danh sách chỉ tiêu + tuỳ chọn tự động tính điểm).
         /// </summary>
         [HttpPost("phieu/{idPhieu}")]
+        [Authorize(Roles = "Admin,KyThuatVien")]
         public async Task<IActionResult> NhapLieu(
             int idPhieu,
             [FromBody] NhapPhieuKiemTraRequest request,
@@ -108,6 +110,7 @@ namespace PM_QLTBHTD.API.Controllers
         }
 
         [HttpPut("{id}")]
+        [Authorize(Roles = "Admin,KyThuatVien,TruongTram")]
         public async Task<IActionResult> Update(int id, [FromBody] UpdateChiTietKiemTraDto dto)
         {
             var updated = await _service.UpdateAsync(id, dto);
@@ -115,6 +118,7 @@ namespace PM_QLTBHTD.API.Controllers
         }
 
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin,KyThuatVien")]
         public async Task<IActionResult> Delete(int id)
         {
             var result = await _service.DeleteAsync(id);

@@ -1,4 +1,5 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using PM_QLTBHTD.Application.DTOs;
 using PM_QLTBHTD.Application.Exceptions;
 using PM_QLTBHTD.Application.Services.IService;
@@ -7,6 +8,7 @@ namespace PM_QLTBHTD.API.Controllers
 {
     [ApiController]
     [Route("api/cong-thuc-bien")]
+    [Authorize(Roles = "Admin,KySuCauHinh,GiamDoc")]
     public class CongThucBienController : ControllerBase
     {
         private readonly ICongThucBienService _service;
@@ -27,7 +29,8 @@ namespace PM_QLTBHTD.API.Controllers
             return item == null ? NotFound() : Ok(item);
         }
 
-        [HttpPost]
+        [HttpPost("create-congthucbien")]
+        [Authorize(Roles = "Admin,KySuCauHinh")]
         public async Task<IActionResult> Create([FromBody] CreateCongThucBienDto dto)
         {
             try
@@ -42,6 +45,7 @@ namespace PM_QLTBHTD.API.Controllers
         }
 
         [HttpPut("{id}")]
+        [Authorize(Roles = "Admin,KySuCauHinh")]
         public async Task<IActionResult> Update(int id, [FromBody] UpdateCongThucBienDto dto)
         {
             try
@@ -56,6 +60,7 @@ namespace PM_QLTBHTD.API.Controllers
         }
 
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin,KySuCauHinh")]
         public async Task<IActionResult> Delete(int id)
         {
             var result = await _service.DeleteAsync(id);

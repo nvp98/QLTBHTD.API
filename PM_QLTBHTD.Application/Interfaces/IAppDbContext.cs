@@ -42,5 +42,9 @@ namespace PM_QLTBHTD.Application.Interfaces
 
         // Bảo trì
         IQueryable<CBM_LichBaoTri> LichBaoTris { get; }
+
+        // Xác thực & phân quyền
+        IQueryable<CBM_VaiTro> VaiTros { get; }
+        IQueryable<CBM_NguoiDung> NguoiDungs { get; }
     }
 }

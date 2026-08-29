@@ -1,4 +1,5 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using PM_QLTBHTD.Application.DTOs;
 using PM_QLTBHTD.Application.Services.IService;
 
@@ -15,7 +16,7 @@ namespace PM_QLTBHTD.API.Controllers
             _service = service;
         }
 
-        [HttpGet]
+        [HttpGet("get-all-phieukiemtra")]
         public async Task<IActionResult> GetAll(
             [FromQuery] string? search,
             [FromQuery] int? idTram = null, [FromQuery] int? idLoaiTB = null, [FromQuery] int? idThietBi = null,
@@ -60,7 +61,8 @@ namespace PM_QLTBHTD.API.Controllers
         public async Task<IActionResult> GetLichSuChiTieu(int idThietBi, int idChiTieu)
             => Ok(await _service.GetLichSuChiTieuAsync(idThietBi, idChiTieu));
 
-        [HttpPost]
+        [HttpPost("create-phieukiemtra")]
+        [Authorize(Roles = "Admin,KyThuatVien")]
         public async Task<IActionResult> Create([FromBody] CreatePhieuKiemTraDto dto)
         {
             var created = await _service.CreateAsync(dto);
@@ -68,6 +70,7 @@ namespace PM_QLTBHTD.API.Controllers
         }
 
         [HttpPut("{id}")]
+        [Authorize(Roles = "Admin,KyThuatVien,TruongTram")]
         public async Task<IActionResult> Update(int id, [FromBody] UpdatePhieuKiemTraDto dto)
         {
             var updated = await _service.UpdateAsync(id, dto);
@@ -75,6 +78,7 @@ namespace PM_QLTBHTD.API.Controllers
         }
 
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin,KyThuatVien")]
         public async Task<IActionResult> Delete(int id)
         {
             var result = await _service.DeleteAsync(id);

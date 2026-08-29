@@ -1,4 +1,5 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using PM_QLTBHTD.Application.DTOs;
 using PM_QLTBHTD.Application.Services.IService;
 
@@ -6,13 +7,14 @@ namespace PM_QLTBHTD.API.Controllers
 {
     [ApiController]
     [Route("api/lich-bao-tri")]
+    [Authorize(Roles = "Admin,KyThuatVien,TruongTram,GiamDoc")]
     public class LichBaoTriController : ControllerBase
     {
         private readonly ILichBaoTriService _service;
 
         public LichBaoTriController(ILichBaoTriService service) => _service = service;
 
-        [HttpGet]
+        [HttpGet("get-all-lichbaotri")]
         public async Task<IActionResult> GetAll(
             [FromQuery] string? search, [FromQuery] string? trangThai, [FromQuery] int? idTram,
             [FromQuery] DateTime? tuNgay, [FromQuery] DateTime? denNgay,
@@ -34,7 +36,8 @@ namespace PM_QLTBHTD.API.Controllers
             return item == null ? NotFound() : Ok(item);
         }
 
-        [HttpPost]
+        [HttpPost("create-lichbaotri")]
+        [Authorize(Roles = "Admin,KyThuatVien,TruongTram")]
         public async Task<IActionResult> Create([FromBody] CreateLichBaoTriDto dto)
         {
             var created = await _service.CreateAsync(dto);
@@ -42,6 +45,7 @@ namespace PM_QLTBHTD.API.Controllers
         }
 
         [HttpPut("{id}")]
+        [Authorize(Roles = "Admin,KyThuatVien,TruongTram")]
         public async Task<IActionResult> Update(int id, [FromBody] UpdateLichBaoTriDto dto)
         {
             var updated = await _service.UpdateAsync(id, dto);
@@ -49,6 +53,7 @@ namespace PM_QLTBHTD.API.Controllers
         }
 
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin,KyThuatVien,TruongTram")]
         public async Task<IActionResult> Delete(int id)
         {
             var result = await _service.DeleteAsync(id);
@@ -56,6 +61,7 @@ namespace PM_QLTBHTD.API.Controllers
         }
 
         [HttpPost("{id}/hoan-thanh")]
+        [Authorize(Roles = "Admin,KyThuatVien,TruongTram")]
         public async Task<IActionResult> HoanThanh(int id, [FromBody] HoanThanhLichBaoTriDto dto)
         {
             var result = await _service.HoanThanhAsync(id, dto);
@@ -63,6 +69,7 @@ namespace PM_QLTBHTD.API.Controllers
         }
 
         [HttpPost("{id}/huy")]
+        [Authorize(Roles = "Admin,KyThuatVien,TruongTram")]
         public async Task<IActionResult> Huy(int id)
         {
             var result = await _service.HuyAsync(id);

@@ -48,6 +48,10 @@ namespace PM_QLTBHTD.Infrastructure.Persistence
         // Bảo trì
         public DbSet<CBM_LichBaoTri> CBM_LichBaoTri { get; set; }
 
+        // Xác thực & phân quyền
+        public DbSet<CBM_VaiTro> CBM_VaiTro { get; set; }
+        public DbSet<CBM_NguoiDung> CBM_NguoiDung { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -98,5 +102,7 @@ namespace PM_QLTBHTD.Infrastructure.Persistence
         IQueryable<CBM_ChiTieu_PhanLoaiNguong> IAppDbContext.PhanLoaiNguongs => CBM_ChiTieu_PhanLoaiNguong.AsQueryable();
         IQueryable<CBM_KetQuaPhanLoaiThang> IAppDbContext.KetQuaPhanLoaiThangs => CBM_KetQuaPhanLoaiThang.AsQueryable();
         IQueryable<CBM_LichBaoTri> IAppDbContext.LichBaoTris => CBM_LichBaoTri.AsQueryable();
+        IQueryable<CBM_VaiTro> IAppDbContext.VaiTros => CBM_VaiTro.AsQueryable();
+        IQueryable<CBM_NguoiDung> IAppDbContext.NguoiDungs => CBM_NguoiDung.AsQueryable();
     }
 }

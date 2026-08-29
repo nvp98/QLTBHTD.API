@@ -1,4 +1,5 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using PM_QLTBHTD.Application.DTOs;
 using PM_QLTBHTD.Application.Exceptions;
 using PM_QLTBHTD.Application.Services.IService;
@@ -7,6 +8,7 @@ namespace PM_QLTBHTD.API.Controllers
 {
     [ApiController]
     [Route("api/chitieu-formula")]
+    [Authorize(Roles = "Admin,KySuCauHinh,GiamDoc")]
     public class ChiTieuFormulaController : ControllerBase
     {
         private readonly IChiTieuFormulaService _service;
@@ -25,7 +27,8 @@ namespace PM_QLTBHTD.API.Controllers
             return item == null ? NotFound() : Ok(item);
         }
 
-        [HttpPost]
+        [HttpPost("create-chitieuformula")]
+        [Authorize(Roles = "Admin,KySuCauHinh")]
         public async Task<IActionResult> Create([FromBody] CreateChiTieuFormulaDto dto)
         {
             try
@@ -40,6 +43,7 @@ namespace PM_QLTBHTD.API.Controllers
         }
 
         [HttpPut("{id}")]
+        [Authorize(Roles = "Admin,KySuCauHinh")]
         public async Task<IActionResult> Update(int id, [FromBody] UpdateChiTieuFormulaDto dto)
         {
             try
@@ -54,6 +58,7 @@ namespace PM_QLTBHTD.API.Controllers
         }
 
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin,KySuCauHinh")]
         public async Task<IActionResult> Delete(int id)
         {
             try

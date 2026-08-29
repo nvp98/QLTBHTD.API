@@ -1,4 +1,5 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using PM_QLTBHTD.Application.DTOs;
 using PM_QLTBHTD.Application.Services.IService;
 
@@ -6,6 +7,7 @@ namespace PM_QLTBHTD.API.Controllers
 {
     [ApiController]
     [Route("api/thietbi-thongso")]
+    [Authorize(Roles = "Admin,KySuCauHinh,GiamDoc")]
     public class ThietBiThongSoController : ControllerBase
     {
         private readonly IThietBiThongSoService _service;
@@ -20,11 +22,13 @@ namespace PM_QLTBHTD.API.Controllers
         public async Task<IActionResult> GetThietBiThongSoByThongSo(int idThongSo)
             => Ok(await _service.GetByThongSoAsync(idThongSo));
 
-        [HttpPost]
+        [HttpPost("create-thietbithongso")]
+        [Authorize(Roles = "Admin,KySuCauHinh")]
         public async Task<IActionResult> CreateThietBiThongSo([FromBody] CreateThietBiThongSoDto dto)
             => Ok(await _service.CreateAsync(dto));
 
         [HttpPut("{id}")]
+        [Authorize(Roles = "Admin,KySuCauHinh")]
         public async Task<IActionResult> UpdateThietBiThongSo(int id, [FromBody] UpdateThietBiThongSoDto dto)
         {
             var updated = await _service.UpdateAsync(id, dto);
@@ -32,6 +36,7 @@ namespace PM_QLTBHTD.API.Controllers
         }
 
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin,KySuCauHinh")]
         public async Task<IActionResult> DeleteThietBiThongSo(int id)
         {
             var result = await _service.DeleteAsync(id);

@@ -1,4 +1,5 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using PM_QLTBHTD.Application.DTOs;
 using PM_QLTBHTD.Application.Exceptions;
 using PM_QLTBHTD.Application.Services.IService;
@@ -7,6 +8,7 @@ namespace PM_QLTBHTD.API.Controllers
 {
     [ApiController]
     [Route("api/chitieu-rule")]
+    [Authorize(Roles = "Admin,KySuCauHinh,GiamDoc")]
     public class ChiTieuRuleController : ControllerBase
     {
         private readonly IChiTieuRuleService _service;
@@ -25,7 +27,8 @@ namespace PM_QLTBHTD.API.Controllers
             return item == null ? NotFound() : Ok(item);
         }
 
-        [HttpPost]
+        [HttpPost("create-chitieurule")]
+        [Authorize(Roles = "Admin,KySuCauHinh")]
         public async Task<IActionResult> Create([FromBody] CreateChiTieuRuleDto dto)
         {
             var created = await _service.CreateAsync(dto);
@@ -33,6 +36,7 @@ namespace PM_QLTBHTD.API.Controllers
         }
 
         [HttpPut("{id}")]
+        [Authorize(Roles = "Admin,KySuCauHinh")]
         public async Task<IActionResult> Update(int id, [FromBody] UpdateChiTieuRuleDto dto)
         {
             try
@@ -47,6 +51,7 @@ namespace PM_QLTBHTD.API.Controllers
         }
 
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin,KySuCauHinh")]
         public async Task<IActionResult> Delete(int id)
         {
             try

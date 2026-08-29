@@ -1,4 +1,5 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using PM_QLTBHTD.Application.DTOs;
 using PM_QLTBHTD.Application.Exceptions;
 using PM_QLTBHTD.Application.Services.IService;
@@ -49,6 +50,7 @@ namespace PM_QLTBHTD.API.Controllers
         /// Dùng để "làm mới" sau khi sửa công thức/cây chỉ tiêu hoặc bổ sung dữ liệu còn thiếu.
         /// </summary>
         [HttpPost("tinh-tong-diem/{idPhieu}")]
+        [Authorize(Roles = "Admin,KyThuatVien,TruongTram")]
         public async Task<IActionResult> TinhTongDiem(int idPhieu, CancellationToken ct)
         {
             try
@@ -69,6 +71,7 @@ namespace PM_QLTBHTD.API.Controllers
         /// vừa sửa. Dùng endpoint này sau khi sửa cấu hình tính điểm để "làm mới" 1 phiếu đã tồn tại.
         /// </summary>
         [HttpPost("tinh-lai-si/{idPhieu}")]
+        [Authorize(Roles = "Admin,KyThuatVien,TruongTram")]
         public async Task<IActionResult> TinhLaiSi(int idPhieu, CancellationToken ct)
         {
             try

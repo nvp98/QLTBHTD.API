@@ -142,6 +142,70 @@ namespace PM_QLTBHTD.Application.Services
             return result;
         }
 
+        /// <summary>CSSK trung bình + phân bố hạng theo TỪNG LOẠI THIẾT BỊ (MBA, MC, DCL...) — thay
+        /// cho 1 số trung bình gộp toàn hệ thống vốn không có ý nghĩa vì mỗi loại thiết bị dùng bộ
+        /// chỉ tiêu/công thức tính điểm khác nhau và nằm ở các trạm độc lập với nhau.</summary>
+        public async Task<IEnumerable<TongHopTheoLoaiDto>> GetTongHopTheoLoaiAsync()
+        {
+            var loais = await _db.LoaiThietBis.ToListAsync();
+
+            var thietBiList = await _db.ThietBis
+                .Where(t => t.TrangThai == 1)
+                .Select(t => new { t.ID_ThietBi, t.ID_LoaiTB })
+                .ToListAsync();
+
+            var latestIds = await _db.PhieuKiemTras
+                .GroupBy(p => p.ID_ThietBi)
+                .Select(g => g.Max(x => x.ID_Phieu))
+                .ToListAsync();
+
+            var latestPhieus = await _db.PhieuKiemTras
+                .Where(p => latestIds.Contains(p.ID_Phieu))
+                .Select(p => new { p.ID_ThietBi, p.TongDiem_Soqt })
+                .ToListAsync();
+
+            var latestMap = latestPhieus.ToDictionary(x => x.ID_ThietBi, x => x.TongDiem_Soqt);
+
+            var result = new List<TongHopTheoLoaiDto>();
+            foreach (var loai in loais.OrderBy(l => l.TenLoaiTB))
+            {
+                var tbInLoai = thietBiList.Where(t => t.ID_LoaiTB == loai.ID_LoaiThietBi).ToList();
+                if (tbInLoai.Count == 0) continue; // bỏ qua loại chưa có thiết bị nào đang hoạt động
+
+                var diems = tbInLoai
+                    .Where(t => latestMap.TryGetValue(t.ID_ThietBi, out var d) && d.HasValue)
+                    .Select(t => (double)latestMap[t.ID_ThietBi]!.Value)
+                    .ToList();
+
+                int tot = 0, binh = 0, chuY = 0, canhBao = 0, nguHiem = 0;
+                foreach (var d in diems)
+                {
+                    if      (d >= 8) tot++;
+                    else if (d >= 6) binh++;
+                    else if (d >= 4) chuY++;
+                    else if (d >= 2) canhBao++;
+                    else             nguHiem++;
+                }
+
+                result.Add(new TongHopTheoLoaiDto
+                {
+                    ID_LoaiTB       = loai.ID_LoaiThietBi,
+                    TenLoaiTB       = loai.TenLoaiTB,
+                    KyHieu          = loai.KyHieu,
+                    TongThietBi     = tbInLoai.Count,
+                    DaKiemTra       = diems.Count,
+                    DiemTrungBinh   = diems.Count > 0 ? diems.Average() : null,
+                    TotCount        = tot,
+                    BinhThuongCount = binh,
+                    ChuYCount       = chuY,
+                    CanhBaoCount    = canhBao,
+                    NguHiemCount    = nguHiem,
+                });
+            }
+
+            return result;
+        }
+
         /// <summary>
         /// Cảnh báo thiết bị mức 0-10 &lt; 6, xét PHIẾU MỚI NHẤT của mỗi thiết bị. Thiết bị có CSSK
         /// tổng (TongDiem_Soqt) dùng luôn giá trị đó — như trước. Thiết bị KHÔNG có CSSK tổng (loại
@@ -178,21 +242,23 @@ namespace PM_QLTBHTD.Application.Services
                 }
             ).ToListAsync();
 
-            var idsThieuTongDiem = phieuInfo.Where(x => x.TongDiem_Soqt == null).Select(x => x.ID_Phieu).ToList();
-
-            var siThapNhatMap = idsThieuTongDiem.Count == 0
-                ? new Dictionary<int, (decimal Si, string TenChiTieu)>()
+            // Chỉ tiêu có Sᵢ THẤP NHẤT của mỗi phiếu — dùng để: (1) fallback DiemHienThi cho thiết bị
+            // không có CSSK tổng, và (2) gợi ý ngay "cần làm gì" (khuyến cáo hành động) cho MỌI thiết
+            // bị cảnh báo, kể cả thiết bị đã có CSSK tổng.
+            var allPhieuIds = phieuInfo.Select(x => x.ID_Phieu).ToList();
+            Dictionary<int, (decimal Si, string TenChiTieu, string? KhuyenCao)> chiTieuThapNhatMap = allPhieuIds.Count == 0
+                ? new Dictionary<int, (decimal Si, string TenChiTieu, string? KhuyenCao)>()
                 : (await (
                     from ct in _db.ChiTietKiemTras
                     join c in _db.ChiTieus on ct.ID_ChiTieu equals c.ID_ChiTieu
-                    where idsThieuTongDiem.Contains(ct.IDPhieu) && ct.Diem_Si_DatDuoc != null
-                    select new { ct.IDPhieu, Si = ct.Diem_Si_DatDuoc!.Value, c.TenChiTieu }
+                    where allPhieuIds.Contains(ct.IDPhieu) && ct.Diem_Si_DatDuoc != null
+                    select new { ct.IDPhieu, Si = ct.Diem_Si_DatDuoc!.Value, c.TenChiTieu, ct.HanhDongKhuyenCao }
                 ).ToListAsync())
                 .GroupBy(x => x.IDPhieu)
                 .ToDictionary(g => g.Key, g =>
                 {
                     var thapNhat = g.OrderBy(x => x.Si).First();
-                    return (thapNhat.Si, thapNhat.TenChiTieu);
+                    return (thapNhat.Si, thapNhat.TenChiTieu, thapNhat.HanhDongKhuyenCao);
                 });
 
             var result = new List<CanhBaoThietBiDto>();
@@ -201,17 +267,18 @@ namespace PM_QLTBHTD.Application.Services
                 decimal diemHienThi;
                 string nguonDiem;
                 string? tenChiTieuThapNhat = null;
+                chiTieuThapNhatMap.TryGetValue(p.ID_Phieu, out var chiTieuThapNhat);
 
                 if (p.TongDiem_Soqt != null)
                 {
                     diemHienThi = p.TongDiem_Soqt.Value;
                     nguonDiem = "CSSK";
                 }
-                else if (siThapNhatMap.TryGetValue(p.ID_Phieu, out var thapNhat))
+                else if (chiTieuThapNhat.TenChiTieu != null)
                 {
-                    diemHienThi = thapNhat.Si;
+                    diemHienThi = chiTieuThapNhat.Si;
                     nguonDiem = "CHI_TIEU";
-                    tenChiTieuThapNhat = thapNhat.TenChiTieu;
+                    tenChiTieuThapNhat = chiTieuThapNhat.TenChiTieu;
                 }
                 else
                 {
@@ -232,6 +299,7 @@ namespace PM_QLTBHTD.Application.Services
                     DiemHienThi         = diemHienThi,
                     NguonDiem           = nguonDiem,
                     TenChiTieuThapNhat  = tenChiTieuThapNhat,
+                    KhuyenCaoHanhDong   = chiTieuThapNhat.KhuyenCao,
                     CapDoCanhBao        = p.CapDoCanhBao
                         ?? ((double)diemHienThi >= 4 ? "Chu y"
                            : (double)diemHienThi >= 2 ? "Canh bao"
@@ -240,6 +308,48 @@ namespace PM_QLTBHTD.Application.Services
             }
 
             return result.OrderBy(r => r.DiemHienThi);
+        }
+
+        /// <summary>Xu hướng CSSK trung bình toàn hệ thống theo tháng, tính trên TẤT CẢ phiếu kiểm tra
+        /// có CSSK tổng trong tháng đó (không chỉ phiếu mới nhất) — phản ánh chất lượng thiết bị được
+        /// kiểm tra trong từng tháng, giúp giám đốc trung tâm giám sát thấy xu hướng tăng/giảm.</summary>
+        public async Task<IEnumerable<XuHuongThangDto>> GetXuHuongThangAsync(int soThang, int? idTram, int? idLoaiTB, int? idThietBi)
+        {
+            if (soThang <= 0) soThang = 6;
+            var tuThang = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1).AddMonths(-(soThang - 1));
+
+            var query =
+                from p in _db.PhieuKiemTras
+                join tb in _db.ThietBis on p.ID_ThietBi equals tb.ID_ThietBi
+                where p.NgayKiemTra >= tuThang
+                   && (idTram == null || tb.ID_Tram == idTram)
+                   && (idLoaiTB == null || tb.ID_LoaiTB == idLoaiTB)
+                   && (idThietBi == null || tb.ID_ThietBi == idThietBi)
+                select new { p.NgayKiemTra, p.TongDiem_Soqt };
+
+            var phieus = await query.ToListAsync();
+
+            var byThang = phieus
+                .GroupBy(p => new DateTime(p.NgayKiemTra.Year, p.NgayKiemTra.Month, 1))
+                .ToDictionary(g => g.Key, g => g.ToList());
+
+            var result = new List<XuHuongThangDto>();
+            for (var i = 0; i < soThang; i++)
+            {
+                var thang = tuThang.AddMonths(i);
+                byThang.TryGetValue(thang, out var items);
+                items ??= new();
+                var diems = items.Where(x => x.TongDiem_Soqt.HasValue).Select(x => (double)x.TongDiem_Soqt!.Value).ToList();
+
+                result.Add(new XuHuongThangDto
+                {
+                    Thang         = thang.ToString("yyyy-MM"),
+                    DiemTrungBinh = diems.Count > 0 ? diems.Average() : null,
+                    SoPhieu       = items.Count,
+                });
+            }
+
+            return result;
         }
     }
 }

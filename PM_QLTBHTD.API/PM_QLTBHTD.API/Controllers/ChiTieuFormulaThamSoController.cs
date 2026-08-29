@@ -1,4 +1,5 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using PM_QLTBHTD.Application.DTOs;
 using PM_QLTBHTD.Application.Services.IService;
 
@@ -6,6 +7,7 @@ namespace PM_QLTBHTD.API.Controllers
 {
     [ApiController]
     [Route("api/chitieu-formula-thamso")]
+    [Authorize(Roles = "Admin,KySuCauHinh,GiamDoc")]
     public class ChiTieuFormulaThamSoController : ControllerBase
     {
         private readonly IChiTieuFormulaThamSoService _service;
@@ -24,7 +26,8 @@ namespace PM_QLTBHTD.API.Controllers
             return item == null ? NotFound() : Ok(item);
         }
 
-        [HttpPost]
+        [HttpPost("create-chitieuformulathamso")]
+        [Authorize(Roles = "Admin,KySuCauHinh")]
         public async Task<IActionResult> Create([FromBody] CreateChiTieuFormulaThamSoDto dto)
         {
             var created = await _service.CreateAsync(dto);
@@ -32,6 +35,7 @@ namespace PM_QLTBHTD.API.Controllers
         }
 
         [HttpPut("{id}")]
+        [Authorize(Roles = "Admin,KySuCauHinh")]
         public async Task<IActionResult> Update(int id, [FromBody] UpdateChiTieuFormulaThamSoDto dto)
         {
             var updated = await _service.UpdateAsync(id, dto);
@@ -39,6 +43,7 @@ namespace PM_QLTBHTD.API.Controllers
         }
 
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin,KySuCauHinh")]
         public async Task<IActionResult> Delete(int id)
         {
             var result = await _service.DeleteAsync(id);
