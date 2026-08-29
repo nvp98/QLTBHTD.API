@@ -1,0 +1,35 @@
+namespace PM_QLTBHTD.Application.DTOs
+{
+    public class ChiTieuDto
+    {
+        public int      ID_ChiTieu     { get; set; }
+        public int      ID_NhomChiTieu { get; set; }
+        public string?  TenNhom        { get; set; } = string.Empty;
+        public int      ID_LoaiThietBi { get; set; }
+        public string?  TenChiTieu     { get; set; } = string.Empty;
+        public decimal? TrongSo_Wi     { get; set; }
+        public int      TrangThai      { get; set; }
+        public string?  LoaiTinhDiem   { get; set; }
+        public decimal? GiaTri_L1      { get; set; }
+    }
+
+    public class CreateChiTieuDto
+    {
+        public int      ID_NhomChiTieu { get; set; }
+        public string?  TenChiTieu     { get; set; } = string.Empty;
+        public decimal? TrongSo_Wi     { get; set; }
+        public int      TrangThai      { get; set; } = 1;
+        public string?  LoaiTinhDiem   { get; set; }
+        public decimal? GiaTri_L1      { get; set; }
+    }
+
+    public class UpdateChiTieuDto
+    {
+        public int      ID_NhomChiTieu { get; set; }
+        public string?  TenChiTieu     { get; set; } = string.Empty;
+        public decimal? TrongSo_Wi     { get; set; }
+        public int      TrangThai      { get; set; }
+        public string?  LoaiTinhDiem   { get; set; }
+        public decimal? GiaTri_L1      { get; set; }
+    }
+}

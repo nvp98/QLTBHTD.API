@@ -1,0 +1,28 @@
+using PM_QLTBHTD.Application.DTOs;
+
+namespace PM_QLTBHTD.Application.Services.IService
+{
+    public interface IPhieuKiemTraService
+    {
+        Task<PagedResult<PhieuKiemTraDto>> GetPagedAsync(
+            string? search, int? idTram, int? idLoaiTB, int? idThietBi, DateTime? tuNgay, DateTime? denNgay,
+            int page, int? pageSize);
+        /// <summary>Phiếu MỚI NHẤT của mỗi thiết bị (trong tập đã lọc) — vd trang Kết quả kiểm tra
+        /// chế độ "Mới nhất mỗi thiết bị". Lọc trước rồi mới chọn mới nhất mỗi nhóm, không phải
+        /// ngược lại — khớp đúng hành vi lọc phía client trước đây.</summary>
+        Task<IEnumerable<PhieuKiemTraDto>> GetLatestPerThietBiAsync(
+            string? search, int? idTram, int? idLoaiTB, int? idThietBi, DateTime? tuNgay, DateTime? denNgay);
+        Task<IEnumerable<PhieuKiemTraDto>> GetByThietBiAsync(int idThietBi);
+        /// <summary>Các phiếu tạo cùng đợt kiểm tra ngăn lộ (nhóm theo ID_NganLo) — dùng để xem/báo cáo theo đợt.</summary>
+        Task<IEnumerable<PhieuKiemTraDto>> GetByNganLoAsync(int idNganLo);
+        Task<IEnumerable<PhieuKiemTraDto>> GetByNgayAsync(DateTime tuNgay, DateTime denNgay);
+        Task<PhieuKiemTraDetailDto?> GetDetailAsync(int idPhieu);
+        /// <summary>Toàn bộ lịch sử đo (mọi phiếu) của 1 chỉ tiêu trên 1 thiết bị, mới nhất trước —
+        /// dùng để xem xu hướng, KHÔNG liên quan tới fallback "lấy Si gần nhất" dùng khi tính điểm nhóm.</summary>
+        Task<List<LichSuChiTieuDto>> GetLichSuChiTieuAsync(int idThietBi, int idChiTieu);
+        Task<PhieuKiemTraDto?> GetByIdAsync(int id);
+        Task<PhieuKiemTraDto> CreateAsync(CreatePhieuKiemTraDto dto);
+        Task<PhieuKiemTraDto?> UpdateAsync(int id, UpdatePhieuKiemTraDto dto);
+        Task<bool> DeleteAsync(int id);
+    }
+}

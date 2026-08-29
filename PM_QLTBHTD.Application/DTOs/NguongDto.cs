@@ -1,0 +1,53 @@
+namespace PM_QLTBHTD.Application.DTOs
+{
+    public class NguongDto
+    {
+        public int ID_Nguong { get; set; }
+        public int ID_ChiTieu { get; set; }
+        public string? TenChiTieu { get; set; } = string.Empty;
+        public decimal? CanTren { get; set; }
+        public decimal? CanDuoi { get; set; }
+        public decimal? Diem_Si { get; set; }
+        public bool CanDuoi_BaoGom { get; set; }
+        public bool CanTren_BaoGom { get; set; }
+        /// <summary>Biểu thức NCalc (ưu tiên hơn CanDuoi/CanTren khi có giá trị).</summary>
+        public string? BieuThuc_Logic { get; set; }
+        /// <summary>Khi Chỉ tiêu có CBM_ChiTieu_Formula: MaKetQua của Formula mà ngưỡng này áp dụng. NULL = áp trực tiếp lên GiaTriNhap_So.</summary>
+        public string? MaKetQua { get; set; }
+        public string? HanhDongKhuyenCao { get; set; }
+    }
+
+    public class CreateNguongDto
+    {
+        public int ID_ChiTieu { get; set; }
+        public decimal? CanTren { get; set; }
+        public decimal? CanDuoi { get; set; }
+        public decimal? Diem_Si { get; set; }
+        /// <summary>true = ≥ (bao gồm đầu mút dưới), false = > . Default: true</summary>
+        public bool CanDuoi_BaoGom { get; set; } = true;
+        /// <summary>true = ≤ (bao gồm đầu mút trên), false = &lt; . Default: false</summary>
+        public bool CanTren_BaoGom { get; set; } = false;
+        /// <summary>Biểu thức NCalc (ưu tiên hơn CanDuoi/CanTren khi có giá trị).</summary>
+        public string? BieuThuc_Logic { get; set; }
+        /// <summary>Khi Chỉ tiêu có CBM_ChiTieu_Formula: MaKetQua của Formula mà ngưỡng này áp dụng. NULL = áp trực tiếp lên GiaTriNhap_So.</summary>
+        public string? MaKetQua { get; set; }
+        public string? HanhDongKhuyenCao { get; set; }
+    }
+
+    public class UpdateNguongDto
+    {
+        public int ID_ChiTieu { get; set; }
+        public decimal? CanTren { get; set; }
+        public decimal? CanDuoi { get; set; }
+        public decimal? Diem_Si { get; set; }
+        /// <summary>true = ≥ (bao gồm đầu mút dưới), false = > . Default: true</summary>
+        public bool CanDuoi_BaoGom { get; set; } = true;
+        /// <summary>true = ≤ (bao gồm đầu mút trên), false = &lt; . Default: false</summary>
+        public bool CanTren_BaoGom { get; set; } = false;
+        /// <summary>Biểu thức NCalc (ưu tiên hơn CanDuoi/CanTren khi có giá trị).</summary>
+        public string? BieuThuc_Logic { get; set; }
+        /// <summary>Khi Chỉ tiêu có CBM_ChiTieu_Formula: MaKetQua của Formula mà ngưỡng này áp dụng. NULL = áp trực tiếp lên GiaTriNhap_So.</summary>
+        public string? MaKetQua { get; set; }
+        public string? HanhDongKhuyenCao { get; set; }
+    }
+}

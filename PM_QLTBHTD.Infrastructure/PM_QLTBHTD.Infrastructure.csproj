@@ -13,11 +13,13 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+    <PackageReference Include="NCalc" Version="1.3.8" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\PM_QLTBHTD.Application\PM_QLTBHTD.Application.csproj" />
     <ProjectReference Include="..\PM_QLTBHTD.Domain\PM_QLTBHTD.Domain.csproj" />
   </ItemGroup>
+
 
 </Project>
