@@ -65,16 +65,19 @@ namespace PM_QLTBHTD.Application.DTOs
         public decimal? TongDiem_Soqt { get; set; }
         public string CapDoCanhBao { get; set; } = string.Empty;
 
-        /// <summary>Điểm dùng để phân loại/sắp xếp/tô màu — bằng TongDiem_Soqt nếu thiết bị có CSSK
-        /// tổng; nếu không (loại thiết bị theo quy trình không tính CHI, vd DCL/TU/TI/CS) thì lấy
-        /// Sᵢ THẤP NHẤT trong các chỉ tiêu đã đo của phiếu mới nhất làm đại diện mức cảnh báo.</summary>
+        /// <summary>Điểm dùng để phân loại/sắp xếp/tô màu. Bằng TongDiem_Soqt khi NguonDiem='CSSK';
+        /// bằng Sᵢ của chỉ tiêu thấp nhất khi NguonDiem='CHI_TIEU' hoặc 'CHI_TIEU_RIENG'.</summary>
         public decimal DiemHienThi { get; set; }
 
-        /// <summary>'CSSK' = DiemHienThi lấy từ TongDiem_Soqt; 'CHI_TIEU' = lấy từ Sᵢ thấp nhất
-        /// 1 chỉ tiêu (thiết bị không có CSSK tổng).</summary>
+        /// <summary>'CSSK' = DiemHienThi lấy từ TongDiem_Soqt (điểm tổng cũng đang ở mức cảnh báo).
+        /// 'CHI_TIEU' = lấy từ Sᵢ thấp nhất 1 chỉ tiêu (thiết bị không có CSSK tổng, vd DCL/TU/TI/CS).
+        /// 'CHI_TIEU_RIENG' = CSSK TỔNG vẫn ≥6 (Khá/Tốt) nhưng có 1 chỉ tiêu riêng lẻ rơi vào mức
+        /// Cảnh báo/Nguy hiểm (Sᵢ &lt; 4) bị trọng số nhỏ "trung hòa" mất trong điểm tổng — vẫn cần
+        /// cảnh báo theo đúng chỉ tiêu đó thay vì bỏ sót chỉ vì điểm tổng qua ngưỡng. TongDiem_Soqt
+        /// vẫn giữ giá trị thật (tốt) để FE hiển thị kèm, tránh hiểu nhầm cả thiết bị đang kém.</summary>
         public string NguonDiem { get; set; } = "CSSK";
 
-        /// <summary>Tên chỉ tiêu có Sᵢ thấp nhất — chỉ có giá trị khi NguonDiem='CHI_TIEU'.</summary>
+        /// <summary>Tên chỉ tiêu có Sᵢ thấp nhất — có giá trị khi NguonDiem='CHI_TIEU' hoặc 'CHI_TIEU_RIENG'.</summary>
         public string? TenChiTieuThapNhat { get; set; }
 
         /// <summary>Khuyến cáo hành động (snapshot) của chỉ tiêu có Sᵢ thấp nhất trong phiếu — giúp

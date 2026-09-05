@@ -19,6 +19,11 @@ namespace PM_QLTBHTD.Application.Services
         private readonly IPhieuKiemTraRepository _phieuRepo;
         private readonly IKetQuaTrungGianRepository _trungGianRepo;
 
+        // Cache trong phạm vi 1 instance (Scoped theo request) — 1 phiếu chỉ có 1 dòng PhieuKiemTra,
+        // được đọc lặp lại rất nhiều lần (mỗi chỉ tiêu/biến cần "giá trị gần nhất") trong cùng 1 lần
+        // tính cây. Tránh N+1: query 1 lần, dùng lại cho toàn bộ các lần gọi sau với cùng idPhieu.
+        private readonly Dictionary<int, PhieuKiemTra?> _phieuCache = new();
+
         public ScoringEngine(
             IAppDbContext db, IKetQuaNhomRepository ketQuaRepo, IPhieuKiemTraRepository phieuRepo,
             IKetQuaTrungGianRepository trungGianRepo)
@@ -41,28 +46,40 @@ namespace PM_QLTBHTD.Application.Services
                 .Where(x => x.ID_LoaiThietBi == idLoaiThietBi && x.TrangThai == 1)
                 .ToListAsync(ct);
 
-            var ket = new List<KetQuaNhomDto>();
+            var diemTheoNhom = new List<(CBM_NhomChiTieu Nhom, decimal Diem)>();
             foreach (var nhom in tatCaNhom)
             {
                 try
                 {
                     var diem = await TinhDiemNhomAsync(nhom.ID_NhomChiTieu, idPhieu, ct);
-                    var cache = await _ketQuaRepo.GetByPhieuNhomAsync(idPhieu, nhom.ID_NhomChiTieu);
-                    ket.Add(new KetQuaNhomDto
-                    {
-                        ID_NhomChiTieu = nhom.ID_NhomChiTieu,
-                        TenNhom = nhom.TenNhom,
-                        LoaiNhom = nhom.LoaiNhom,
-                        CapDo = nhom.CapDo,
-                        Diem = diem,
-                        BienDaBind = cache?.BienDaBind,
-                        ThoiGianTinh = cache?.ThoiGianTinh ?? DateTime.UtcNow
-                    });
+                    diemTheoNhom.Add((nhom, diem));
                 }
                 catch (CongThucKhongTonTaiException)
                 {
                     // Nhóm COMPOSITE chưa có công thức — bỏ qua, không lỗi toàn bộ cây
                 }
+            }
+
+            // Đọc cache 1 LẦN DUY NHẤT cho cả phiếu (thay vì GetByPhieuNhomAsync riêng lẻ từng nhóm
+            // trong vòng lặp phía trên) để tránh N+1 — tất cả các nhóm đã upsert xong ở TinhDiemNhomAsync
+            // nên cache đọc ra ở đây đã là bản mới nhất cho từng nhóm.
+            var cacheTheoNhom = (await _ketQuaRepo.GetByPhieuAsync(idPhieu))
+                .ToDictionary(x => x.ID_NhomChiTieu);
+
+            var ket = new List<KetQuaNhomDto>();
+            foreach (var (nhom, diem) in diemTheoNhom)
+            {
+                cacheTheoNhom.TryGetValue(nhom.ID_NhomChiTieu, out var cache);
+                ket.Add(new KetQuaNhomDto
+                {
+                    ID_NhomChiTieu = nhom.ID_NhomChiTieu,
+                    TenNhom = nhom.TenNhom,
+                    LoaiNhom = nhom.LoaiNhom,
+                    CapDo = nhom.CapDo,
+                    Diem = diem,
+                    BienDaBind = cache?.BienDaBind,
+                    ThoiGianTinh = cache?.ThoiGianTinh ?? DateTime.UtcNow
+                });
             }
 
             return BuildTree(ket, tatCaNhom);
@@ -160,10 +177,25 @@ namespace PM_QLTBHTD.Application.Services
                     .Select(c => new { c.ID_ChiTieu, c.TrongSo_Wi })
                     .ToListAsync(ct);
 
+                // Batch: lấy Si đo TRONG CHÍNH phiếu này cho TẤT CẢ chỉ tiêu của nhóm bằng 1 query,
+                // thay vì 1 query riêng/chỉ tiêu (N+1 khi nhóm có nhiều chỉ tiêu). Chỉ tiêu nào không
+                // có trong batch (chưa đo trong phiếu này) mới cần query "gần nhất" riêng bên dưới —
+                // giữ nguyên đúng thứ tự ưu tiên như LayDiemChiTieuGanNhatAsync.
+                var idsChiTieu = chiTieuList.Select(c => c.ID_ChiTieu).ToList();
+                var siHienTaiRows = await _db.ChiTietKiemTras
+                    .Where(x => x.IDPhieu == idPhieu && idsChiTieu.Contains(x.ID_ChiTieu) && x.Diem_Si_DatDuoc != null)
+                    .Select(x => new { x.ID_ChiTieu, x.Diem_Si_DatDuoc })
+                    .ToListAsync(ct);
+                var siHienTaiMap = new Dictionary<int, decimal?>();
+                foreach (var r in siHienTaiRows)
+                    if (!siHienTaiMap.ContainsKey(r.ID_ChiTieu)) siHienTaiMap[r.ID_ChiTieu] = r.Diem_Si_DatDuoc;
+
                 var weightedSi = new List<(decimal Si, decimal TrongSo)>();
                 foreach (var c in chiTieuList)
                 {
-                    var si = await LayDiemChiTieuGanNhatAsync(c.ID_ChiTieu, idPhieu, ct);
+                    var si = siHienTaiMap.TryGetValue(c.ID_ChiTieu, out var siHienTai)
+                        ? siHienTai
+                        : await LayDiemGanNhatTruocDoAsync(c.ID_ChiTieu, idPhieu, ct);
                     if (si.HasValue) weightedSi.Add((si.Value, c.TrongSo_Wi ?? 1m));
                 }
 
@@ -357,7 +389,15 @@ namespace PM_QLTBHTD.Application.Services
                 .FirstOrDefaultAsync(ct);
             if (siHienTai != null) return siHienTai;
 
-            var phieuHienTai = await _db.PhieuKiemTras.FirstOrDefaultAsync(p => p.ID_Phieu == idPhieu, ct);
+            return await LayDiemGanNhatTruocDoAsync(idChiTieu, idPhieu, ct);
+        }
+
+        /// <summary>Phần "fallback" của LayDiemChiTieuGanNhatAsync (tách riêng để nơi gọi đã tự biết
+        /// chỉ tiêu KHÔNG có Si trong chính phiếu này — vd sau khi batch-check nhiều chỉ tiêu cùng lúc —
+        /// có thể gọi thẳng, khỏi lặp lại câu query siHienTai đã biết trước là rỗng).</summary>
+        private async Task<decimal?> LayDiemGanNhatTruocDoAsync(int idChiTieu, int idPhieu, CancellationToken ct)
+        {
+            var phieuHienTai = await LayPhieuCachedAsync(idPhieu, ct);
             if (phieuHienTai == null) return null;
 
             var siGanNhat = await (
@@ -373,6 +413,17 @@ namespace PM_QLTBHTD.Application.Services
             ).FirstOrDefaultAsync(ct);
 
             return siGanNhat;
+        }
+
+        /// <summary>Cache PhieuKiemTra theo idPhieu trong phạm vi 1 instance — cùng 1 phiếu được đọc
+        /// lại rất nhiều lần khi tính cả cây (mỗi chỉ tiêu/biến thiếu dữ liệu trong phiếu này đều cần
+        /// tra "gần nhất" dựa trên ID_ThietBi/NgayKiemTra của phiếu). Tránh N+1 truy vấn PhieuKiemTras.</summary>
+        private async Task<PhieuKiemTra?> LayPhieuCachedAsync(int idPhieu, CancellationToken ct)
+        {
+            if (_phieuCache.TryGetValue(idPhieu, out var cached)) return cached;
+            var phieu = await _db.PhieuKiemTras.FirstOrDefaultAsync(p => p.ID_Phieu == idPhieu, ct);
+            _phieuCache[idPhieu] = phieu;
+            return phieu;
         }
 
         /// <summary>

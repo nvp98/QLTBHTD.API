@@ -271,8 +271,21 @@ namespace PM_QLTBHTD.Application.Services
 
                 if (p.TongDiem_Soqt != null)
                 {
-                    diemHienThi = p.TongDiem_Soqt.Value;
-                    nguonDiem = "CSSK";
+                    // CSSK tổng có thể vẫn qua ngưỡng "tốt" dù có 1 chỉ tiêu riêng lẻ rất kém — trọng
+                    // số Wᵢ nhỏ của chỉ tiêu đó "trung hòa" mất trong điểm tổng. Nếu chỉ tiêu thấp nhất
+                    // đã ở mức Cảnh báo/Nguy hiểm (Sᵢ < 4) mà điểm tổng lại ≥ 6, ưu tiên cảnh báo theo
+                    // đúng chỉ tiêu đó thay vì im lặng bỏ qua chỉ vì điểm tổng qua ngưỡng.
+                    if (chiTieuThapNhat.TenChiTieu != null && chiTieuThapNhat.Si < 4 && p.TongDiem_Soqt.Value >= 6)
+                    {
+                        diemHienThi = chiTieuThapNhat.Si;
+                        nguonDiem = "CHI_TIEU_RIENG";
+                        tenChiTieuThapNhat = chiTieuThapNhat.TenChiTieu;
+                    }
+                    else
+                    {
+                        diemHienThi = p.TongDiem_Soqt.Value;
+                        nguonDiem = "CSSK";
+                    }
                 }
                 else if (chiTieuThapNhat.TenChiTieu != null)
                 {
@@ -300,8 +313,12 @@ namespace PM_QLTBHTD.Application.Services
                     NguonDiem           = nguonDiem,
                     TenChiTieuThapNhat  = tenChiTieuThapNhat,
                     KhuyenCaoHanhDong   = chiTieuThapNhat.KhuyenCao,
-                    CapDoCanhBao        = p.CapDoCanhBao
-                        ?? ((double)diemHienThi >= 4 ? "Chu y"
+                    // CapDoCanhBao đã lưu sẵn trên phiếu (p.CapDoCanhBao) được tính theo CSSK TỔNG —
+                    // chỉ dùng khi NguonDiem="CSSK"; 2 trường hợp còn lại (CHI_TIEU/CHI_TIEU_RIENG)
+                    // phải tính lại theo đúng DiemHienThi (điểm chỉ tiêu), không thì hiển thị sai mức.
+                    CapDoCanhBao        = nguonDiem == "CSSK" && p.CapDoCanhBao != null
+                        ? p.CapDoCanhBao
+                        : ((double)diemHienThi >= 4 ? "Chu y"
                            : (double)diemHienThi >= 2 ? "Canh bao"
                            : "Nguy hiem"),
                 });

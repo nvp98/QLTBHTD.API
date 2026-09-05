@@ -19,6 +19,7 @@ namespace PM_QLTBHTD.Application.Services
         private readonly IAppDbContext _db;
         private readonly IChiTieuScoringService _scoringService;
         private readonly IScoringEngine _scoringEngine;
+        private readonly INotificationService _notifier;
 
         public PhieuKiemTraService(
             IPhieuKiemTraRepository phieuRepo,
@@ -29,7 +30,8 @@ namespace PM_QLTBHTD.Application.Services
             ILichBaoTriRepository lichBaoTriRepo,
             IAppDbContext db,
             IChiTieuScoringService scoringService,
-            IScoringEngine scoringEngine)
+            IScoringEngine scoringEngine,
+            INotificationService notifier)
         {
             _phieuRepo = phieuRepo;
             _chiTietRepo = chiTietRepo;
@@ -40,6 +42,7 @@ namespace PM_QLTBHTD.Application.Services
             _db = db;
             _scoringService = scoringService;
             _scoringEngine = scoringEngine;
+            _notifier = notifier;
         }
 
         private IQueryable<PhieuKiemTraDto> JoinQuery()
@@ -323,7 +326,9 @@ namespace PM_QLTBHTD.Application.Services
                 // Cấu hình cây có vấn đề (nhiều nhóm gốc) — để CSSK tổng trống, không chặn tạo phiếu.
             }
 
-            return (await GetByIdAsync(phieu.ID_Phieu))!;
+            var result = (await GetByIdAsync(phieu.ID_Phieu))!;
+            await _notifier.ThongBaoPhieuMoiAsync(result);
+            return result;
         }
 
         public async Task<PhieuKiemTraDto?> UpdateAsync(int id, UpdatePhieuKiemTraDto dto)

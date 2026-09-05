@@ -4,9 +4,11 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using PM_QLTBHTD.API.Hubs;
 using PM_QLTBHTD.Application.DependencyInjection;
 using PM_QLTBHTD.Application.Interfaces;
 using PM_QLTBHTD.Application.Options;
+using PM_QLTBHTD.Application.Services.IService;
 using PM_QLTBHTD.Infrastructure.DependencyInjection;
 using PM_QLTBHTD.Infrastructure.Persistence;
 
@@ -33,6 +35,19 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidAudience = jwtOptions.Audience,
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.Key)),
         };
+
+        // SignalR/WebSocket không cho set header Authorization tùy ý từ browser — token được
+        // HubConnectionBuilder gửi qua query string access_token, đọc ra ở đây cho các request /hubs.
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                var accessToken = context.Request.Query["access_token"];
+                if (!string.IsNullOrEmpty(accessToken) && context.HttpContext.Request.Path.StartsWithSegments("/hubs"))
+                    context.Token = accessToken;
+                return Task.CompletedTask;
+            }
+        };
     });
 builder.Services.AddAuthorization();
 
@@ -41,6 +56,10 @@ builder.Services.AddAuthorization();
 // thay vì rải ~50 dòng AddScoped trực tiếp ở đây.
 builder.Services.AddRepositories();
 builder.Services.AddApplicationServices();
+
+// SignalR — đẩy sự kiện realtime (vd tạo phiếu kiểm tra mới) xuống Dashboard FE.
+builder.Services.AddSignalR();
+builder.Services.AddSingleton<INotificationService, NotificationService>();
 
 // Yêu cầu đăng nhập mặc định cho MỌI controller/action — chỉ [AllowAnonymous] (vd AuthController.Login)
 // mới bỏ qua; các action ghi dữ liệu dùng thêm [Authorize(Roles = "...")] để thu hẹp theo module.
@@ -71,10 +90,21 @@ builder.Services.AddSwaggerGen(c =>
 });
 
 // CORS
+//builder.Services.AddCors(options =>
+//{
+//    options.AddPolicy("AllowAll", policy =>
+//        policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
+//});
+
+// CORS
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
-        policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
+        policy
+            .WithOrigins("http://localhost:5173", "http://10.192.39.110:8383")
+            .AllowAnyMethod()
+            .AllowAnyHeader()
+            .AllowCredentials());
 });
 
 var app = builder.Build();
@@ -91,5 +121,6 @@ app.UseCors("AllowAll");
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.MapHub<NotificationHub>("/hubs/notifications");
 
 app.Run();

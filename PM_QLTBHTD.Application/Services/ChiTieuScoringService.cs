@@ -23,6 +23,11 @@ namespace PM_QLTBHTD.Application.Services
         private readonly IFormulaEngine _formulaEngine;
         private readonly IScoringEngine _scoringEngine;
 
+        // Cache trong phạm vi 1 instance (Scoped theo request) — (ID_ThietBi, NgayKiemTra) của 1 phiếu
+        // không đổi trong suốt 1 lần gọi TinhVaLuuDiemSiAsync, nhưng được cần tới cho nhiều chỉ tiêu
+        // (LF/TOC_DO_SINH_KHI/THIETBI_THONGSO) trong cùng batch — tránh query PhieuKiemTras lặp lại.
+        private readonly Dictionary<int, (int ID_ThietBi, DateTime NgayKiemTra)> _phieuInfoCache = new();
+
         public ChiTieuScoringService(
             IAppDbContext db,
             IChiTietKiemTraRepository chiTietRepo,
@@ -59,6 +64,18 @@ namespace PM_QLTBHTD.Application.Services
             });
         }
 
+        private async Task<(int ID_ThietBi, DateTime NgayKiemTra)> LayPhieuInfoAsync(int idPhieu, CancellationToken ct)
+        {
+            if (_phieuInfoCache.TryGetValue(idPhieu, out var cached)) return cached;
+            var pi = await _db.PhieuKiemTras
+                .Where(p => p.ID_Phieu == idPhieu)
+                .Select(p => new { p.ID_ThietBi, p.NgayKiemTra })
+                .FirstAsync(ct);
+            var result = (pi.ID_ThietBi, pi.NgayKiemTra);
+            _phieuInfoCache[idPhieu] = result;
+            return result;
+        }
+
         public async Task TinhVaLuuDiemSiAsync(
             int idPhieu,
             IEnumerable<NhapChiTietKiemTraDto> danhSachNhap,
@@ -73,17 +90,37 @@ namespace PM_QLTBHTD.Application.Services
 
             var trungGianCanGhi = new List<CBM_KetQuaTrungGian>();
 
+            // Batch trước cả 3 nguồn dữ liệu tra theo ID_ChiTieu để tránh N+1 — trước đây mỗi chỉ tiêu
+            // trong danhSachNhapList tự query riêng LoaiTinhDiem, ChiTietKiemTra hiện có, và ChiTieuInputs,
+            // khiến 1 phiếu N chỉ tiêu tốn ít nhất 3N round-trip DB. Giá trị/kết quả trả về giữ y nguyên
+            // (FirstOrDefault vẫn "lấy dòng đầu tiên khớp" như cũ, chỉ khác là đọc từ 1 query gộp).
+            var idsChiTieuNhap = danhSachNhapList.Select(x => x.ID_ChiTieu).Distinct().ToList();
+
+            var loaiTinhDiemMap = await _db.ChiTieus
+                .Where(c => idsChiTieuNhap.Contains(c.ID_ChiTieu))
+                .Select(c => new { c.ID_ChiTieu, c.LoaiTinhDiem })
+                .ToDictionaryAsync(x => x.ID_ChiTieu, x => x.LoaiTinhDiem, ct);
+
+            var existingChiTietRows = await _db.ChiTietKiemTras
+                .Where(x => x.IDPhieu == idPhieu && idsChiTieuNhap.Contains(x.ID_ChiTieu))
+                .ToListAsync(ct);
+            var existingChiTietMap = new Dictionary<int, ChiTietKiemTra>();
+            foreach (var r in existingChiTietRows)
+                if (!existingChiTietMap.ContainsKey(r.ID_ChiTieu)) existingChiTietMap[r.ID_ChiTieu] = r;
+
+            var chiTieuInputsMap = (await _db.ChiTieuInputs
+                    .Where(x => idsChiTieuNhap.Contains(x.ID_ChiTieu))
+                    .ToListAsync(ct))
+                .GroupBy(x => x.ID_ChiTieu)
+                .ToDictionary(g => g.Key, g => g.ToList());
+
             foreach (var nhap in danhSachNhapList)
             {
                 var idChiTieu = nhap.ID_ChiTieu;
 
-                var loaiTinhDiem = await _db.ChiTieus
-                    .Where(c => c.ID_ChiTieu == idChiTieu)
-                    .Select(c => c.LoaiTinhDiem)
-                    .FirstOrDefaultAsync(ct);
+                loaiTinhDiemMap.TryGetValue(idChiTieu, out var loaiTinhDiem);
 
-                var chiTiet = await _db.ChiTietKiemTras
-                    .FirstOrDefaultAsync(x => x.IDPhieu == idPhieu && x.ID_ChiTieu == idChiTieu, ct);
+                existingChiTietMap.TryGetValue(idChiTieu, out var chiTiet);
 
                 bool isNew = chiTiet == null;
                 chiTiet ??= new ChiTietKiemTra
@@ -96,9 +133,9 @@ namespace PM_QLTBHTD.Application.Services
                 decimal? diemSi;
                 string? hanhDongKhuyenCao;
 
-                var chiTieuInputs = await _db.ChiTieuInputs
-                    .Where(x => x.ID_ChiTieu == idChiTieu)
-                    .ToListAsync(ct);
+                var chiTieuInputs = chiTieuInputsMap.TryGetValue(idChiTieu, out var cti)
+                    ? cti
+                    : new List<CBM_ChiTieu_Input>();
 
                 try
                 {
@@ -109,10 +146,7 @@ namespace PM_QLTBHTD.Application.Services
                     }
                     else if (loaiTinhDiem == "LF")
                     {
-                        var phieuInfo = await _db.PhieuKiemTras
-                            .Where(p => p.ID_Phieu == idPhieu)
-                            .Select(p => new { p.ID_ThietBi, p.NgayKiemTra })
-                            .FirstAsync(ct);
+                        var phieuInfo = await LayPhieuInfoAsync(idPhieu, ct);
 
                         var (lf, si, hanhDong) = await TinhDiemLFAsync(
                             idPhieu, phieuInfo.ID_ThietBi, phieuInfo.NgayKiemTra, idChiTieu, nhap.GiaTriNhap_So, ct);
@@ -122,10 +156,7 @@ namespace PM_QLTBHTD.Application.Services
                     }
                     else if (loaiTinhDiem == "TOC_DO_SINH_KHI")
                     {
-                        var phieuInfo = await _db.PhieuKiemTras
-                            .Where(p => p.ID_Phieu == idPhieu)
-                            .Select(p => new { p.ID_ThietBi, p.NgayKiemTra })
-                            .FirstAsync(ct);
+                        var phieuInfo = await LayPhieuInfoAsync(idPhieu, ct);
 
                         var (phanTramNam, si, hanhDong) = await TinhDiemTocDoSinhKhiAsync(
                             idPhieu, phieuInfo.ID_ThietBi, phieuInfo.NgayKiemTra, idChiTieu, nhap.GiaTriNhap_So, ct);
@@ -162,10 +193,7 @@ namespace PM_QLTBHTD.Application.Services
                                 // Chỉ tiêu có cấu hình Formula (CBM_ChiTieu_Formula): Input → Formula (giá trị
                                 // trung gian) → Threshold theo MaKetQua → Rule (gộp nhiều Si nếu có nhiều Formula).
                                 // Không có Formula nào → giữ nguyên hành vi cũ (Threshold đa biến trực tiếp trên Input).
-                                var idThietBiCuaPhieu = await _db.PhieuKiemTras
-                                    .Where(p => p.ID_Phieu == idPhieu)
-                                    .Select(p => p.ID_ThietBi)
-                                    .FirstAsync(ct);
+                                var idThietBiCuaPhieu = (await LayPhieuInfoAsync(idPhieu, ct)).ID_ThietBi;
 
                                 var ketQuaFormula = await _formulaEngine.EvaluateAllAsync(
                                     idChiTieu, idPhieu, idThietBiCuaPhieu, vars, ct);
@@ -627,10 +655,7 @@ namespace PM_QLTBHTD.Application.Services
                     if (string.IsNullOrWhiteSpace(inp.MaThongSoThietBi))
                         throw new ThieuCauHinhInputException(idChiTieu, inp.MaInput);
 
-                    idThietBi ??= await _db.PhieuKiemTras
-                        .Where(p => p.ID_Phieu == idPhieu)
-                        .Select(p => p.ID_ThietBi)
-                        .FirstAsync(ct);
+                    idThietBi ??= (await LayPhieuInfoAsync(idPhieu, ct)).ID_ThietBi;
 
                     var giaTri = await (
                         from t in _db.ThietBiThongSos

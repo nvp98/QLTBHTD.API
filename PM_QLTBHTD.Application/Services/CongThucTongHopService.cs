@@ -47,8 +47,19 @@ namespace PM_QLTBHTD.Application.Services
         public async Task<IEnumerable<CongThucTongHopDto>> GetByNhomAsync(int idNhomChiTieu)
         {
             var list = await JoinQuery().Where(x => x.ID_NhomChiTieu == idNhomChiTieu).ToListAsync();
+            if (list.Count == 0) return list;
+
+            // Batch: 1 query lấy biến của TẤT CẢ công thức trong list, thay vì GetBienAsync riêng
+            // từng công thức (N+1 khi 1 nhóm có nhiều công thức/phiên bản).
+            var ids = list.Select(x => x.ID_CongThuc).ToList();
+            var bienTheoCongThuc = (await GetBienAsync(ids))
+                .GroupBy(x => x.ID_CongThuc)
+                .ToDictionary(g => g.Key, g => g.ToList());
+
             foreach (var item in list)
-                item.DanhSachBien = await GetBienAsync(item.ID_CongThuc);
+                item.DanhSachBien = bienTheoCongThuc.TryGetValue(item.ID_CongThuc, out var bien)
+                    ? bien
+                    : new List<CongThucBienDto>();
             return list;
         }
 
@@ -151,9 +162,12 @@ namespace PM_QLTBHTD.Application.Services
         }
 
         private async Task<List<CongThucBienDto>> GetBienAsync(int idCongThuc)
+            => await GetBienAsync(new List<int> { idCongThuc });
+
+        private async Task<List<CongThucBienDto>> GetBienAsync(List<int> idsCongThuc)
         {
             return await (from b in _db.CongThucBiens
-                          where b.ID_CongThuc == idCongThuc
+                          where idsCongThuc.Contains(b.ID_CongThuc)
                           join ct in _db.ChiTieus on b.ID_ChiTieuNguon equals ct.ID_ChiTieu into ctGroup
                           from ct in ctGroup.DefaultIfEmpty()
                           join nh in _db.NhomChiTieus on b.ID_NhomCon equals nh.ID_NhomChiTieu into nhGroup
