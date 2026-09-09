@@ -34,7 +34,6 @@ namespace PM_QLTBHTD.Infrastructure.Persistence
         public DbSet<CBM_CongThuc_Bien> CBM_CongThuc_Bien { get; set; }
         public DbSet<CBM_KetQuaNhom> CBM_KetQuaNhom { get; set; }
         public DbSet<CBM_KetQuaTrungGian> CBM_KetQuaTrungGian { get; set; }
-        public DbSet<CBM_CongThuc_TestCase> CBM_CongThuc_TestCase { get; set; }
 
         // Phiếu kiểm tra
         public DbSet<PhieuKiemTra> PhieuKiemTra { get; set; }

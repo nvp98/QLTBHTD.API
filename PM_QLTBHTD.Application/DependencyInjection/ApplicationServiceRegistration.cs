@@ -40,7 +40,6 @@ namespace PM_QLTBHTD.Application.DependencyInjection
             // Công thức tổng hợp
             services.AddScoped<ICongThucTongHopService, CongThucTongHopService>();
             services.AddScoped<ICongThucBienService, CongThucBienService>();
-            services.AddScoped<ICongThucTestCaseService, CongThucTestCaseService>();
             services.AddScoped<ILichSuService, LichSuService>();
 
             // Phiếu kiểm tra & scoring

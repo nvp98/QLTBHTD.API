@@ -40,7 +40,6 @@ namespace PM_QLTBHTD.Infrastructure.DependencyInjection
             services.AddScoped<ICongThucBienRepository, CongThucBienRepository>();
             services.AddScoped<IKetQuaNhomRepository, KetQuaNhomRepository>();
             services.AddScoped<IKetQuaTrungGianRepository, KetQuaTrungGianRepository>();
-            services.AddScoped<ICongThucTestCaseRepository, CongThucTestCaseRepository>();
 
             // Phiếu kiểm tra
             services.AddScoped<IPhieuKiemTraRepository, PhieuKiemTraRepository>();
