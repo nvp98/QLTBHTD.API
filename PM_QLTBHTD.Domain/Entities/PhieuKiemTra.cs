@@ -18,6 +18,9 @@ namespace PM_QLTBHTD.Domain.Entities
         public DateTime NgayKiemTra { get; set; }
         public string? NguoiKiemTra { get; set; }
 
+        /// <summary>ID người dùng đăng nhập đã tạo phiếu (lấy từ JWT). NULL = phiếu cũ trước khi có cột này.</summary>
+        public int? ID_NguoiTao { get; set; }
+
         public decimal? TongDiem_Soqt { get; set; }
         public string? CapDoCanhBao { get; set; }
 

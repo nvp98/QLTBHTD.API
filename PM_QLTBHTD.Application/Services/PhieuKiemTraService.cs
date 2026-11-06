@@ -262,7 +262,7 @@ namespace PM_QLTBHTD.Application.Services
             }
         }
 
-        public async Task<PhieuKiemTraDto> CreateAsync(CreatePhieuKiemTraDto dto)
+        public async Task<PhieuKiemTraDto> CreateAsync(CreatePhieuKiemTraDto dto, int? idNguoiTao = null)
         {
             var ngayKiemTra = dto.NgayKiemTra ?? DateTime.Now;
             var phieu = new PhieuKiemTra
@@ -272,8 +272,9 @@ namespace PM_QLTBHTD.Application.Services
                 ID_NhomChiTieu = dto.ID_NhomChiTieu,
                 NgayKiemTra    = ngayKiemTra,
                 NguoiKiemTra   = dto.NguoiKiemTra,
+                ID_NguoiTao    = idNguoiTao,
                 GhiChuChung    = dto.GhiChuChung,
-                SoPhieu        = await GenerateSoPhieuAsync(dto.ID_ThietBi, ngayKiemTra)
+                SoPhieu       = await GenerateSoPhieuAsync(dto.ID_ThietBi, ngayKiemTra)
             };
             await _phieuRepo.AddAsync(phieu);
             await _phieuRepo.SaveChangesAsync();

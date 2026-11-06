@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System.Security.Claims;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using PM_QLTBHTD.Application.DTOs;
 using PM_QLTBHTD.Application.Services.IService;
@@ -65,7 +66,8 @@ namespace PM_QLTBHTD.API.Controllers
         [Authorize(Roles = "Admin,KyThuatVien")]
         public async Task<IActionResult> Create([FromBody] CreatePhieuKiemTraDto dto)
         {
-            var created = await _service.CreateAsync(dto);
+            int? idNguoiTao = int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var uid) ? uid : null;
+            var created = await _service.CreateAsync(dto, idNguoiTao);
             return CreatedAtAction(nameof(GetById), new { id = created.ID_Phieu }, created);
         }
 

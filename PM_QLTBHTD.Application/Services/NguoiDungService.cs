@@ -113,14 +113,15 @@ namespace PM_QLTBHTD.Application.Services
             await _repository.SaveChangesAsync();
         }
 
-        public async Task DatLaiMatKhauAsync(int idNguoiDung, DatLaiMatKhauDto dto)
+        public async Task<bool> DatLaiMatKhauAsync(int idNguoiDung, DatLaiMatKhauDto dto)
         {
             var entity = await _repository.GetByIdAsync(idNguoiDung);
-            if (entity == null) return;
+            if (entity == null) return false;
 
             entity.MatKhau_Hash = BCrypt.Net.BCrypt.HashPassword(dto.MatKhauMoi);
             _repository.Update(entity);
             await _repository.SaveChangesAsync();
+            return true;
         }
 
         private async Task<NguoiDungDto> MapToDtoAsync(CBM_NguoiDung x)

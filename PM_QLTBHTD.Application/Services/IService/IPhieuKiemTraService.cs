@@ -21,7 +21,7 @@ namespace PM_QLTBHTD.Application.Services.IService
         /// dùng để xem xu hướng, KHÔNG liên quan tới fallback "lấy Si gần nhất" dùng khi tính điểm nhóm.</summary>
         Task<List<LichSuChiTieuDto>> GetLichSuChiTieuAsync(int idThietBi, int idChiTieu);
         Task<PhieuKiemTraDto?> GetByIdAsync(int id);
-        Task<PhieuKiemTraDto> CreateAsync(CreatePhieuKiemTraDto dto);
+        Task<PhieuKiemTraDto> CreateAsync(CreatePhieuKiemTraDto dto, int? idNguoiTao = null);
         Task<PhieuKiemTraDto?> UpdateAsync(int id, UpdatePhieuKiemTraDto dto);
         Task<bool> DeleteAsync(int id);
     }

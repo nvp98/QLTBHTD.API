@@ -53,8 +53,11 @@ namespace PM_QLTBHTD.API.Controllers
         [HttpPut("{id}/dat-lai-mat-khau")]
         public async Task<IActionResult> DatLaiMatKhau(int id, [FromBody] DatLaiMatKhauDto dto)
         {
-            await _service.DatLaiMatKhauAsync(id, dto);
-            return NoContent();
+            if (string.IsNullOrWhiteSpace(dto.MatKhauMoi) || dto.MatKhauMoi.Length < 6)
+                return BadRequest(new { Error = "Mật khẩu mới phải có tối thiểu 6 ký tự." });
+
+            var ok = await _service.DatLaiMatKhauAsync(id, dto);
+            return ok ? NoContent() : NotFound();
         }
 
         [HttpDelete("{id}")]

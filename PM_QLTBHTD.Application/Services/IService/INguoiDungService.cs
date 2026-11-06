@@ -10,6 +10,6 @@ namespace PM_QLTBHTD.Application.Services.IService
         Task<NguoiDungDto?> UpdateAsync(int id, UpdateNguoiDungDto dto);
         Task<bool> DeleteAsync(int id);
         Task DoiMatKhauAsync(int idNguoiDung, DoiMatKhauDto dto);
-        Task DatLaiMatKhauAsync(int idNguoiDung, DatLaiMatKhauDto dto);
+        Task<bool> DatLaiMatKhauAsync(int idNguoiDung, DatLaiMatKhauDto dto);
     }
 }
